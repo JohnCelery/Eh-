@@ -43,11 +43,65 @@ export const VEHICLES = [
   }
 ];
 
-const DEFAULT_PARTY = [
-  { name: 'Ava', role: 'Driver', health: 5, status: 'Ready' },
-  { name: 'Noah', role: 'Scout', health: 5, status: 'Peppy' },
-  { name: 'Maya', role: 'Mechanic', health: 5, status: 'Grease-free' }
+export const DEFAULT_PARTY = [
+  {
+    name: 'Merri-Ellen',
+    role: 'Trip captain',
+    health: 5,
+    status: 'Ready',
+    profile: { familyRole: 'mom' }
+  },
+  {
+    name: 'Mike',
+    role: 'Wheelman',
+    health: 5,
+    status: 'Ready',
+    profile: { familyRole: 'dad' }
+  },
+  {
+    name: 'Ros',
+    role: 'Trail spotter',
+    health: 5,
+    status: 'Ready',
+    profile: { familyRole: 'daughter', age: 9 }
+  },
+  {
+    name: 'Jess',
+    role: 'Snack scout',
+    health: 5,
+    status: 'Ready',
+    profile: { familyRole: 'daughter', age: 6 }
+  },
+  {
+    name: 'Martha',
+    role: 'Morale booster',
+    health: 5,
+    status: 'Ready',
+    profile: { familyRole: 'daughter', age: 3 }
+  },
+  {
+    name: 'Rusty',
+    role: 'Naptime mascot',
+    health: 5,
+    status: 'Ready',
+    profile: { familyRole: 'son', age: 0 }
+  }
 ];
+
+function instantiateDefaultParty() {
+  return DEFAULT_PARTY.map((member) => {
+    const { profile, ...rest } = member;
+    const clone = {
+      health: 5,
+      status: 'Ready',
+      ...rest
+    };
+    if (profile) {
+      clone.profile = { ...profile };
+    }
+    return clone;
+  });
+}
 
 const LOG_LIMIT = 40;
 
@@ -73,7 +127,7 @@ export class GameState {
     return Boolean(this.state);
   }
 
-  startNewRun({ seed, vehicleId, party }) {
+  startNewRun({ seed, vehicleId } = {}) {
     const vehicle = VEHICLES.find((entry) => entry.id === vehicleId) || VEHICLES[0];
     const resolvedSeed = Number.isInteger(seed) ? seed : Math.floor(Number(seed) || Date.now());
     this.rng = new RNG(resolvedSeed);
@@ -84,12 +138,7 @@ export class GameState {
       money: vehicle.stats.money
     };
     const maxResources = { ...resources };
-    const roster = (party && party.length ? party : DEFAULT_PARTY).map((member, index) => ({
-      name: member.name || DEFAULT_PARTY[index % DEFAULT_PARTY.length].name,
-      role: member.role || DEFAULT_PARTY[index % DEFAULT_PARTY.length].role,
-      health: member.health ?? 5,
-      status: member.status || 'Ready'
-    }));
+    const roster = instantiateDefaultParty();
 
     this.state = {
       version: 1,
