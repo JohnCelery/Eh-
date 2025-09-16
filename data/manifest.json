@@ -1,0 +1,10 @@
+{
+  "images": [
+    {
+      "key": "ui.hero",
+      "path": "../assets/ui/hero.png",
+      "label": "Family Roadtrip",
+      "alt": "A family minivan driving past a frozen lake"
+    }
+  ]
+}
