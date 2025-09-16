@@ -63,3 +63,26 @@ export class RNG {
 export function createRNG(seed) {
   return new RNG(seed);
 }
+
+export function deriveSeed(baseSeed, ...parts) {
+  let hash = Number.isInteger(baseSeed) ? baseSeed >>> 0 : Math.floor(baseSeed || 0) >>> 0;
+  if (hash === 0) {
+    hash = 0x1a2b3c4d;
+  }
+  parts.forEach((part) => {
+    const str = String(part ?? '');
+    for (let index = 0; index < str.length; index += 1) {
+      const charCode = str.charCodeAt(index);
+      hash ^= (hash << 5) + (hash >>> 2) + charCode;
+      hash >>>= 0;
+    }
+  });
+  if (hash === 0) {
+    hash = 0x1a2b3c4d;
+  }
+  return hash >>> 0;
+}
+
+export function createDerivedRNG(baseSeed, ...parts) {
+  return new RNG(deriveSeed(baseSeed, ...parts));
+}

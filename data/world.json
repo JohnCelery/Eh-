@@ -1,0 +1,69 @@
+{
+  "worldVersion": 2,
+  "checkpoints": [
+    {
+      "id": "halifax-hub",
+      "name": "Halifax Harbour",
+      "shortName": "Halifax",
+      "coords": { "x": 10, "y": 52 },
+      "region": "Nova Scotia",
+      "actions": ["shop", "ferry"]
+    },
+    {
+      "id": "quebec-mechanic",
+      "name": "Quebec City Overlook",
+      "shortName": "Quebec",
+      "coords": { "x": 24, "y": 46 },
+      "region": "Quebec",
+      "actions": ["shop", "tinker"]
+    },
+    {
+      "id": "ottawa-town",
+      "name": "Ottawa Market Row",
+      "shortName": "Ottawa",
+      "coords": { "x": 38, "y": 48 },
+      "region": "Ontario",
+      "actions": ["shop", "tinker"]
+    },
+    {
+      "id": "thunder-bay",
+      "name": "Thunder Bay Marina",
+      "shortName": "Thunder",
+      "coords": { "x": 52, "y": 42 },
+      "region": "Lake Superior Shore",
+      "actions": ["shop", "tinker"]
+    },
+    {
+      "id": "winnipeg-crossing",
+      "name": "Winnipeg Prairie Crossing",
+      "shortName": "Winnipeg",
+      "coords": { "x": 64, "y": 50 },
+      "region": "Manitoba",
+      "actions": ["shop", "tinker"]
+    },
+    {
+      "id": "regina-plains",
+      "name": "Regina Grassland Gate",
+      "shortName": "Regina",
+      "coords": { "x": 74, "y": 44 },
+      "region": "Saskatchewan",
+      "actions": ["shop", "scavenge"]
+    },
+    {
+      "id": "calgary-foothills",
+      "name": "Calgary Foothills Plaza",
+      "shortName": "Calgary",
+      "coords": { "x": 84, "y": 42 },
+      "region": "Alberta",
+      "actions": ["shop", "tinker"]
+    },
+    {
+      "id": "vancouver-terminal",
+      "name": "Vancouver Coastal Terminal",
+      "shortName": "Vancouver",
+      "coords": { "x": 92, "y": 54 },
+      "region": "British Columbia",
+      "actions": ["shop", "ferry"]
+    }
+  ]
+}

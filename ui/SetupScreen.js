@@ -137,12 +137,12 @@ export default class SetupScreen {
     submit.textContent = 'Hit the road';
     form.append(submit);
 
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const formData = new FormData(form);
       const vehicleId = formData.get('vehicle');
       const seedValue = Number(formData.get('seed'));
-      this.gameState.startNewRun({ seed: seedValue, vehicleId });
+      await this.gameState.startNewRun({ seed: seedValue, vehicleId });
       this.screenManager.navigate('map');
     });
 
