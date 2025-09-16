@@ -1,5 +1,4 @@
 import { GameState } from './systems/state.js';
-import { loadGraph } from './systems/graph.js';
 import { EventEngine } from './systems/events.js';
 import TitleScreen from './ui/TitleScreen.js';
 import SetupScreen from './ui/SetupScreen.js';
@@ -55,7 +54,6 @@ async function bootstrap() {
   const eventEngine = new EventEngine();
   await eventEngine.initialize();
 
-  const graph = await loadGraph();
   const eventModal = new EventModal(document.body);
 
   const titleScreen = new TitleScreen({ screenManager, gameState });
@@ -63,7 +61,6 @@ async function bootstrap() {
   const mapScreen = new MapScreen({
     screenManager,
     gameState,
-    graph,
     eventEngine,
     eventModal
   });

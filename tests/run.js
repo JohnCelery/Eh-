@@ -33,7 +33,7 @@ async function testSaveLoadRoundTrip() {
   })();
 
   const state = new GameState({ storage, storageKey: 'test-save' });
-  state.startNewRun({ seed: 999, vehicleId: 'minivan' });
+  await state.startNewRun({ seed: 999, vehicleId: 'minivan' });
   const original = state.getSnapshot();
 
   const loaded = new GameState({ storage, storageKey: 'test-save' });

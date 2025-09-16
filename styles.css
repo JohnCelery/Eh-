@@ -447,6 +447,126 @@ legend {
   inset: 0;
 }
 
+
+.map-preview {
+  position: absolute;
+  left: clamp(0.8rem, 2.5vw, 1.6rem);
+  bottom: clamp(0.8rem, 2.5vw, 1.6rem);
+  width: min(280px, 72%);
+  padding: clamp(0.85rem, 2vw, 1.35rem);
+  border-radius: var(--radius-md);
+  background: rgba(6, 28, 54, 0.9);
+  border: 1px solid rgba(144, 195, 255, 0.28);
+  box-shadow: 0 1.65rem 3.5rem rgba(4, 20, 40, 0.58);
+  backdrop-filter: blur(12px);
+  transition: opacity var(--transition), transform var(--transition);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.75rem);
+  display: grid;
+  gap: 0.5rem;
+  z-index: 5;
+}
+
+.map-preview[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.map-preview-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(240, 248, 255, 0.95);
+}
+
+.map-preview-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.map-preview-stats dt {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(221, 236, 255, 0.72);
+}
+
+.map-preview-stats dd {
+  margin: 0;
+  color: rgba(240, 249, 255, 0.92);
+  font-weight: 600;
+}
+
+.map-preview-yields {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.map-preview-yields p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(226, 239, 255, 0.82);
+}
+
+.map-preview-yields p strong {
+  color: rgba(240, 248, 255, 0.92);
+  font-weight: 600;
+}
+
+.map-location-conditions {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(210, 228, 255, 0.75);
+}
+
+.map-action-feedback {
+  margin: 0;
+  min-height: 1.2rem;
+  font-size: 0.82rem;
+  color: rgba(240, 248, 255, 0.8);
+}
+
+.map-action-list li {
+  gap: 0.6rem;
+}
+
+.map-action-list li button {
+  justify-self: start;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 78, 136, 0.85);
+  border: 1px solid rgba(144, 195, 255, 0.38);
+  box-shadow: none;
+}
+
+.map-action-list li button:hover,
+.map-action-list li button:focus-visible {
+  background: rgba(28, 104, 176, 0.95);
+}
+
+.map-action-list li small {
+  font-size: 0.75rem;
+  color: rgba(200, 224, 255, 0.7);
+}
+
+.map-action-warning {
+  color: rgba(255, 202, 143, 0.92);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+
 .map-node {
   position: absolute;
   transform: translate(-50%, -50%);

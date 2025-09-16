@@ -1,10 +1,22 @@
 import { getConnections } from '../systems/graph.js';
 
+const TIME_LABELS = ['Morning', 'Midday', 'Evening', 'Night'];
+
+function formatRange(range = { min: 0, max: 0 }, resource) {
+  if (!range) {
+    return '';
+  }
+  const { min = 0, max = 0 } = range;
+  if (min === max) {
+    return `${resource} ${min >= 0 ? '+' : ''}${min}`;
+  }
+  return `${resource} ${min >= 0 ? '+' : ''}${min}–${max}`;
+}
+
 export default class MapScreen {
-  constructor({ screenManager, gameState, graph, eventEngine, eventModal }) {
+  constructor({ screenManager, gameState, eventEngine, eventModal }) {
     this.screenManager = screenManager;
     this.gameState = gameState;
-    this.graph = graph;
     this.eventEngine = eventEngine;
     this.eventModal = eventModal;
 
@@ -21,6 +33,14 @@ export default class MapScreen {
     this.currentSnapshot = null;
     this.stageSize = { width: 0, height: 0 };
     this.resizeObserver = null;
+    this.graph = null;
+
+    this.previewCard = null;
+    this.previewTitle = null;
+    this.previewStats = null;
+    this.previewYields = null;
+    this.actionFeedback = null;
+    this.activePreviewTarget = null;
 
     this._handleKeydown = this._handleKeydown.bind(this);
   }
@@ -28,8 +48,12 @@ export default class MapScreen {
   bind() {}
 
   async render() {
+    await this.gameState.ensureWorldReady();
+    this.graph = this.gameState.getWorldGraph();
     if (!this.section) {
       this.section = this._build();
+    } else {
+      this._renderNodes();
     }
     this._refresh();
     window.requestAnimationFrame(() => {
@@ -100,7 +124,22 @@ export default class MapScreen {
     this.mapArea = document.createElement('div');
     this.mapArea.className = 'map-node-layer';
 
-    this.stageElement.append(instructions, srConnections, this.mapCanvas, this.mapArea);
+    this.previewCard = document.createElement('div');
+    this.previewCard.className = 'map-preview';
+    this.previewCard.setAttribute('aria-live', 'polite');
+    this.previewCard.dataset.visible = 'false';
+    const previewHeading = document.createElement('h4');
+    previewHeading.className = 'map-preview-title';
+    const previewStats = document.createElement('dl');
+    previewStats.className = 'map-preview-stats';
+    const previewYields = document.createElement('div');
+    previewYields.className = 'map-preview-yields';
+    this.previewCard.append(previewHeading, previewStats, previewYields);
+    this.previewTitle = previewHeading;
+    this.previewStats = previewStats;
+    this.previewYields = previewYields;
+
+    this.stageElement.append(instructions, srConnections, this.mapCanvas, this.mapArea, this.previewCard);
 
     layout.append(this.stageElement);
 
@@ -122,8 +161,6 @@ export default class MapScreen {
     layout.append(sidebar);
     section.append(layout);
 
-    this._renderNodes();
-
     if (!this.resizeObserver) {
       this.resizeObserver = new ResizeObserver(() => {
         this._syncCanvasSize();
@@ -131,18 +168,31 @@ export default class MapScreen {
     }
     this.resizeObserver.observe(this.stageElement);
 
+    this._renderNodes();
+
     return section;
   }
 
   _renderNodes() {
+    if (!this.mapArea) {
+      return;
+    }
     const existingButtons = this.mapArea.querySelectorAll('.map-node');
     existingButtons.forEach((node) => node.remove());
+
+    this.graph = this.gameState.getWorldGraph();
+    if (!this.graph) {
+      return;
+    }
 
     this.graph.nodes.forEach((node) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'map-node';
       button.dataset.nodeId = node.id;
+      if (node.kind) {
+        button.dataset.kind = node.kind;
+      }
       button.style.left = `${node.coords.x}%`;
       button.style.top = `${node.coords.y}%`;
       button.setAttribute('aria-label', this._describeNode(node));
@@ -154,6 +204,18 @@ export default class MapScreen {
       button.append(label);
       button.addEventListener('click', () => {
         this._handleNodeClick(node.id);
+      });
+      button.addEventListener('mouseenter', () => {
+        this._maybePreviewNode(node.id);
+      });
+      button.addEventListener('focus', () => {
+        this._maybePreviewNode(node.id);
+      });
+      button.addEventListener('mouseleave', () => {
+        this._hidePreview();
+      });
+      button.addEventListener('blur', () => {
+        this._hidePreview();
       });
       this.mapArea.append(button);
     });
@@ -187,7 +249,7 @@ export default class MapScreen {
   }
 
   _drawCanvas() {
-    if (!this.mapContext || !this.stageSize.width || !this.stageSize.height) {
+    if (!this.mapContext || !this.stageSize.width || !this.stageSize.height || !this.graph) {
       return;
     }
 
@@ -357,6 +419,9 @@ export default class MapScreen {
     if (node.region) {
       segments.push(`Region: ${node.region}`);
     }
+    if (node.kind) {
+      segments.push(`Type: ${node.kind}`);
+    }
     if (Array.isArray(node.actions) && node.actions.length) {
       const actionNames = node.actions
         .map((action) => this._describeAction(action).title)
@@ -369,11 +434,16 @@ export default class MapScreen {
   }
 
   _refresh() {
+    this.graph = this.gameState.getWorldGraph();
+    if (!this.graph) {
+      return;
+    }
     const snapshot = this.gameState.getSnapshot();
     if (!snapshot) {
       return;
     }
     this.currentSnapshot = snapshot;
+    this._renderNodes();
     this._updateResourceBoard(snapshot);
     this._updateNodes(snapshot);
     this._updateLocation(snapshot);
@@ -382,12 +452,14 @@ export default class MapScreen {
   }
 
   _updateResourceBoard(snapshot) {
-    const { resources, day, vehicle } = snapshot;
+    const { resources, day, vehicle, timeSegment = 0 } = snapshot;
     this.resourceBoard.innerHTML = '';
+
+    const timeLabel = TIME_LABELS[timeSegment % TIME_LABELS.length] || '';
 
     const dayTrack = document.createElement('div');
     dayTrack.className = 'resource-track';
-    dayTrack.innerHTML = `<span>Day</span><strong>${day}</strong>`;
+    dayTrack.innerHTML = `<span>Day</span><strong>${day}${timeLabel ? `<small>${timeLabel}</small>` : ''}</strong>`;
     this.resourceBoard.append(dayTrack);
 
     Object.entries(resources).forEach(([key, value]) => {
@@ -440,12 +512,13 @@ export default class MapScreen {
 
       if (activeConnections.length) {
         activeConnections.forEach((entry) => {
-          const { node, link } = entry;
-          const gasCost = Math.max(1, Math.round(link?.distance || 1));
+          const { node } = entry;
+          const estimate = this.gameState.getTravelEstimate(currentId, node.id);
+          const gasCost = estimate?.gasCost ?? Math.max(1, Math.round(entry.link?.distance || 1));
+          const rideRange = estimate?.rideRange?.max ?? (entry.link?.rough ? 2 : 1);
           const region = node.region ? ` in ${node.region}` : '';
-          const roughText = link?.rough ? ' via a rough road' : '';
           const item = document.createElement('li');
-          item.textContent = `Route to ${node.name}${region} costs ${gasCost} fuel${roughText}.`;
+          item.textContent = `Route to ${node.name}${region} costs ${gasCost} fuel with ride risk up to ${rideRange}.`;
           this.a11yList.append(item);
         });
       } else {
@@ -475,9 +548,25 @@ export default class MapScreen {
     region.textContent = node.region || 'Somewhere along the Trans-Canada';
     header.append(region);
 
+    if (node.profile) {
+      const conditions = document.createElement('p');
+      conditions.className = 'map-location-conditions';
+      const hazard = node.profile.hazard ?? 0;
+      const roughness = node.profile.roughness ?? 1;
+      conditions.textContent = `Hazard ${hazard.toFixed(2)} • Terrain ${roughness.toFixed(2)}`;
+      header.append(conditions);
+    }
+
     this.locationDetails.append(header);
 
-    if (Array.isArray(node.actions) && node.actions.length) {
+    this.actionFeedback = document.createElement('p');
+    this.actionFeedback.className = 'map-action-feedback';
+    this.actionFeedback.setAttribute('aria-live', 'polite');
+    this.locationDetails.append(this.actionFeedback);
+
+    const actions = this.gameState.getActionOptions(node.id).filter((option) => option.definition);
+
+    if (actions.length) {
       const actionSection = document.createElement('div');
       actionSection.className = 'map-action-section';
 
@@ -489,16 +578,49 @@ export default class MapScreen {
       const actionList = document.createElement('ul');
       actionList.className = 'map-action-list';
       actionList.setAttribute('aria-label', 'Available actions');
-      node.actions.forEach((action) => {
-        const { title: actionTitle, description } = this._describeAction(action);
+      actions.forEach((action) => {
+        const { definition, preview, available, reason, id } = action;
         const li = document.createElement('li');
-        const strong = document.createElement('strong');
-        strong.textContent = actionTitle;
-        li.append(strong);
-        if (description) {
-          const span = document.createElement('span');
-          span.textContent = description;
-          li.append(span);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = definition.title;
+        button.disabled = !available;
+        button.addEventListener('click', () => {
+          this._handleAction(id);
+        });
+        li.append(button);
+        if (definition.description) {
+          const desc = document.createElement('span');
+          desc.textContent = definition.description;
+          li.append(desc);
+        }
+        if (preview) {
+          const previewLine = document.createElement('small');
+          const parts = [];
+          if (Array.isArray(preview.yields) && preview.yields.length) {
+            preview.yields.forEach((yieldEntry) => {
+              parts.push(formatRange(yieldEntry, yieldEntry.resource));
+            });
+          }
+          if (Array.isArray(preview.costs) && preview.costs.length) {
+            preview.costs.forEach((cost) => {
+              const amount = typeof cost.amount === 'number' ? cost.amount : cost.min ?? 0;
+              parts.push(`${cost.resource} ${amount ? `-${amount}` : ''}`.trim());
+            });
+          }
+          if (Array.isArray(preview.mishaps) && preview.mishaps.length) {
+            preview.mishaps.forEach((mishap) => {
+              parts.push(`${mishap.resource} ${mishap.min ?? 0}–${mishap.max ?? 0}`);
+            });
+          }
+          previewLine.textContent = parts.filter(Boolean).join(' • ');
+          li.append(previewLine);
+        }
+        if (!available && reason) {
+          const warning = document.createElement('small');
+          warning.className = 'map-action-warning';
+          warning.textContent = reason;
+          li.append(warning);
         }
         actionList.append(li);
       });
@@ -506,7 +628,8 @@ export default class MapScreen {
       this.locationDetails.append(actionSection);
     }
 
-    if (this.activeConnections.length) {
+    const routes = this.activeConnections;
+    if (routes.length) {
       const routeSection = document.createElement('div');
       routeSection.className = 'map-route-section';
 
@@ -519,32 +642,18 @@ export default class MapScreen {
       routeList.className = 'map-route-list';
       routeList.setAttribute('aria-label', 'Reachable destinations');
 
-      this.activeConnections.forEach((entry) => {
-        const { node: nextNode, link } = entry;
+      routes.forEach((entry) => {
+        const { node: target } = entry;
+        const estimate = this.gameState.getTravelEstimate(node.id, target.id);
         const li = document.createElement('li');
-
-        const heading = document.createElement('strong');
-        heading.textContent = nextNode.name;
-        li.append(heading);
-
-        const metaBits = [];
-        if (link?.label) {
-          metaBits.push(link.label);
-        }
-        if (link?.distance) {
-          const gasCost = Math.max(1, Math.round(link.distance));
-          metaBits.push(`${gasCost} fuel`);
-        }
-        if (link?.rough) {
-          metaBits.push('Rough road');
-        }
-
-        if (metaBits.length) {
-          const detail = document.createElement('span');
-          detail.textContent = metaBits.join(' • ');
-          li.append(detail);
-        }
-
+        const summary = document.createElement('strong');
+        summary.textContent = target.name;
+        li.append(summary);
+        const detail = document.createElement('span');
+        const gas = estimate?.gasCost ?? Math.max(1, Math.round(entry.link?.distance || 1));
+        const ride = estimate?.rideRange?.max ?? (entry.link?.rough ? 2 : 1);
+        detail.textContent = `Gas ${gas}, Ride risk 0–${ride}`;
+        li.append(detail);
         routeList.append(li);
       });
 
@@ -554,9 +663,6 @@ export default class MapScreen {
   }
 
   _updateLog(snapshot) {
-    if (!this.logList) {
-      return;
-    }
     this.logList.innerHTML = '';
     const recent = [...snapshot.log].slice(-8).reverse();
     recent.forEach((entry) => {
@@ -588,10 +694,15 @@ export default class MapScreen {
           title: 'Ferry',
           description: 'Pay a toll to cross water safely.'
         };
-      case 'town':
+      case 'shop':
         return {
-          title: 'Town',
-          description: 'Visit shops and upgrade stands (coming soon).'
+          title: 'Shop',
+          description: 'Visit shops and upgrade stands for supplies.'
+        };
+      case 'scavenge':
+        return {
+          title: 'Scavenge',
+          description: 'Pick over the area for lost coins and parts.'
         };
       default:
         return {
@@ -616,13 +727,9 @@ export default class MapScreen {
       return;
     }
 
-    const result = this.gameState.travelTo(nodeId, {
-      distance: target.link.distance,
-      roughRoad: target.link.rough,
-      fromName: this.graph.nodes.get(currentId)?.name,
-      toName: target.node.name
-    });
+    const result = this.gameState.travelTo(nodeId);
 
+    this._hidePreview();
     this._refresh();
 
     if (result?.depleted?.length) {
@@ -666,6 +773,120 @@ export default class MapScreen {
     }
     focusableNodes[targetIndex].focus();
     event.preventDefault();
+  }
+
+  _handleAction(actionId) {
+    const result = this.gameState.performNodeAction(actionId);
+    if (result?.ok) {
+      this._setActionFeedback(result.message || 'Action complete.');
+      this._refresh();
+    } else if (result?.reason) {
+      this._setActionFeedback(result.reason);
+    } else {
+      this._setActionFeedback('That action is still under construction.');
+    }
+  }
+
+  _setActionFeedback(text) {
+    if (this.actionFeedback) {
+      this.actionFeedback.textContent = text || '';
+    }
+  }
+
+  _maybePreviewNode(nodeId) {
+    const snapshot = this.currentSnapshot;
+    if (!snapshot || snapshot.location === nodeId) {
+      this._hidePreview();
+      return;
+    }
+    const estimate = this.gameState.getTravelEstimate(snapshot.location, nodeId);
+    if (!estimate) {
+      this._hidePreview();
+      return;
+    }
+    this._showPreview(estimate);
+  }
+
+  _showPreview(estimate) {
+    if (!this.previewCard) {
+      return;
+    }
+    this.previewCard.dataset.visible = 'true';
+    this.activePreviewTarget = estimate.to.id;
+    if (this.previewTitle) {
+      this.previewTitle.textContent = estimate.to.name;
+    }
+    if (this.previewStats) {
+      this.previewStats.innerHTML = '';
+      const efficiency = this.currentSnapshot?.vehicle?.efficiency ?? 1;
+      const addStat = (label, value) => {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        this.previewStats.append(dt, dd);
+      };
+      addStat('Gas', `${estimate.gasCost} (distance ${estimate.distance.toFixed(1)} × eff ${efficiency.toFixed(2)} × rough ${estimate.roughness.toFixed(2)})`);
+      addStat('Ride risk', `0–${estimate.rideRange.max}`);
+      addStat('Snacks', `-${estimate.snackCost}`);
+      addStat('Time', '+1 segment');
+    }
+    if (this.previewYields) {
+      this.previewYields.innerHTML = '';
+      const known = Boolean(this.currentSnapshot?.knowledge?.[estimate.to.id]?.seen)
+        || this.currentSnapshot?.visited?.includes(estimate.to.id);
+      if (!known) {
+        const unknown = document.createElement('p');
+        unknown.textContent = 'Resources unknown until you visit.';
+        this.previewYields.append(unknown);
+      } else {
+        const actions = this.gameState.getActionOptions(estimate.to.id);
+        if (!actions.length) {
+          const none = document.createElement('p');
+          none.textContent = 'No actions logged for this stop yet.';
+          this.previewYields.append(none);
+        } else {
+          actions.forEach((action) => {
+            if (!action.preview || !action.definition) {
+              return;
+            }
+            const row = document.createElement('p');
+            const label = document.createElement('strong');
+            label.textContent = `${action.definition.title}: `;
+            row.append(label);
+            const parts = [];
+            if (Array.isArray(action.preview.yields)) {
+              action.preview.yields.forEach((yieldEntry) => {
+                parts.push(formatRange(yieldEntry, yieldEntry.resource));
+              });
+            }
+            if (Array.isArray(action.preview.costs)) {
+              action.preview.costs.forEach((cost) => {
+                const amount = typeof cost.amount === 'number' ? cost.amount : cost.min ?? 0;
+                if (amount) {
+                  parts.push(`${cost.resource} -${amount}`);
+                }
+              });
+            }
+            if (Array.isArray(action.preview.mishaps) && action.preview.mishaps.length) {
+              action.preview.mishaps.forEach((mishap) => {
+                parts.push(`${mishap.resource} ${mishap.min ?? 0}–${mishap.max ?? 0}`);
+              });
+            }
+            row.append(document.createTextNode(parts.filter(Boolean).join(' • ')));
+            this.previewYields.append(row);
+          });
+        }
+      }
+    }
+  }
+
+  _hidePreview() {
+    if (!this.previewCard) {
+      return;
+    }
+    this.previewCard.dataset.visible = 'false';
+    this.activePreviewTarget = null;
   }
 
   _resolveEventChoice(event, choice) {
