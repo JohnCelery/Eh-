@@ -1,0 +1,86 @@
+{
+  "events": [
+    {
+      "id": "moose-crossing",
+      "title": "Moose on the Loose",
+      "when": ["travel"],
+      "weight": 2,
+      "requires": { "minDay": 1 },
+      "stages": [
+        {
+          "text": "A towering moose meanders into the middle of the Trans-Canada, sizing up your headlights.",
+          "choices": [
+            {
+              "id": "wait",
+              "label": "Idle patiently",
+              "outcome": "You idle in neutral and wait for nature to decide.",
+              "effects": {
+                "resources": { "gas": -1 },
+                "log": "You burn a sip of gas idling behind the moose." },
+              "roll": {
+                "chance": 0.7,
+                "success": {
+                  "outcome": "The moose takes the hint and lumbers off the shoulder.",
+                  "effects": { "log": "The moose wanders away with a frosty snort." }
+                },
+                "failure": {
+                  "outcome": "The moose stares you down and taps the bumper.",
+                  "effects": { "resources": { "ride": -1 }, "log": "Fresh dent! The moose wins this round." }
+                }
+              }
+            },
+            {
+              "id": "honk",
+              "label": "Lay on the horn",
+              "outcome": "You tap the horn and hope for the best.",
+              "effects": {
+                "resources": { "snacks": -1 },
+                "log": "Everyone stress-eats maple fudge during the standoff." },
+              "roll": {
+                "chance": 0.45,
+                "success": {
+                  "outcome": "The honk startles the moose back into the bush.",
+                  "effects": { "log": "Success! The moose sprints into the spruce." }
+                },
+                "failure": {
+                  "outcome": "The horn enrages the moose.",
+                  "effects": { "resources": { "ride": -2 }, "log": "The moose wallops the hood before sauntering off." }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "truckers-kindness",
+      "title": "Friendly Convoy",
+      "when": ["travel"],
+      "weight": 1,
+      "requires": { "minDay": 2 },
+      "stages": [
+        {
+          "text": "A pair of prairie truckers wave you into a rest stop, offering thermoses and tales of black ice ahead.",
+          "choices": [
+            {
+              "id": "share",
+              "label": "Share stories and supplies",
+              "outcome": "You swap road stories and recipes for bannock.",
+              "effects": {
+                "resources": { "snacks": 2 },
+                "log": "The truckers restock your snack bin with jerky and Nanaimo bars." }
+            },
+            {
+              "id": "buy",
+              "label": "Buy extra gas cans",
+              "outcome": "You trade some cash for a tidy jerrycan.",
+              "effects": {
+                "resources": { "gas": 2, "money": -10 },
+                "log": "A spare jerrycan sloshes in the trunk." }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "canadian-trail-out-there-eh",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 5173 || python -m http.server 5173",
+    "test": "node tests/run.js"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "start": "halifax-hub",
+  "nodes": [
+    {
+      "id": "halifax-hub",
+      "name": "Halifax Harbour",
+      "shortName": "Halifax",
+      "coords": { "x": 12, "y": 48 },
+      "region": "Nova Scotia",
+      "actions": ["town", "ferry"],
+      "connections": [
+        { "id": "fundy-ferry", "distance": 1, "label": "Bay of Fundy ferry" },
+        { "id": "pei-ferry", "distance": 1.2, "label": "Northumberland ferry" }
+      ]
+    },
+    {
+      "id": "fundy-ferry",
+      "name": "Bay of Fundy Crossing",
+      "shortName": "Fundy",
+      "coords": { "x": 28, "y": 40 },
+      "region": "New Brunswick",
+      "actions": ["ferry", "siphon"],
+      "connections": [
+        { "id": "halifax-hub", "distance": 1, "label": "Halifax ferry" },
+        { "id": "acadia-forest", "distance": 1.5, "rough": false }
+      ]
+    },
+    {
+      "id": "pei-ferry",
+      "name": "Wood Islands Ferry",
+      "shortName": "PEI",
+      "coords": { "x": 24, "y": 58 },
+      "region": "Prince Edward Island",
+      "actions": ["ferry", "forage"],
+      "connections": [
+        { "id": "halifax-hub", "distance": 1.2 },
+        { "id": "confed-bridge", "distance": 1, "rough": false }
+      ]
+    },
+    {
+      "id": "acadia-forest",
+      "name": "Acadian Forest",
+      "shortName": "Forest",
+      "coords": { "x": 44, "y": 36 },
+      "region": "New Brunswick",
+      "actions": ["forage"],
+      "connections": [
+        { "id": "fundy-ferry", "distance": 1.5 },
+        { "id": "quebec-mechanic", "distance": 2.3, "rough": true }
+      ]
+    },
+    {
+      "id": "confed-bridge",
+      "name": "Confederation Bridge",
+      "shortName": "Bridge",
+      "coords": { "x": 38, "y": 63 },
+      "region": "New Brunswick",
+      "actions": ["ferry", "siphon"],
+      "connections": [
+        { "id": "pei-ferry", "distance": 1 },
+        { "id": "quebec-mechanic", "distance": 1.8 }
+      ]
+    },
+    {
+      "id": "quebec-mechanic",
+      "name": "Quebec City Garage",
+      "shortName": "Quebec",
+      "coords": { "x": 56, "y": 44 },
+      "region": "Quebec",
+      "actions": ["tinker", "town"],
+      "connections": [
+        { "id": "acadia-forest", "distance": 2.3, "rough": true },
+        { "id": "confed-bridge", "distance": 1.8 },
+        { "id": "ottawa-town", "distance": 1.6 }
+      ]
+    },
+    {
+      "id": "ottawa-town",
+      "name": "Ottawa ByWard Market",
+      "shortName": "Ottawa",
+      "coords": { "x": 72, "y": 46 },
+      "region": "Ontario",
+      "actions": ["town", "tinker"],
+      "connections": [
+        { "id": "quebec-mechanic", "distance": 1.6 },
+        { "id": "algonquin-woods", "distance": 1.4 }
+      ]
+    },
+    {
+      "id": "algonquin-woods",
+      "name": "Algonquin Backcountry",
+      "shortName": "Algonquin",
+      "coords": { "x": 84, "y": 54 },
+      "region": "Ontario",
+      "actions": ["forage", "siphon"],
+      "connections": [
+        { "id": "ottawa-town", "distance": 1.4 },
+        { "id": "thunder-bay", "distance": 2.8, "rough": true }
+      ]
+    },
+    {
+      "id": "thunder-bay",
+      "name": "Thunder Bay Marina",
+      "shortName": "Thunder",
+      "coords": { "x": 94, "y": 42 },
+      "region": "Ontario",
+      "actions": ["town", "siphon"],
+      "connections": [
+        { "id": "algonquin-woods", "distance": 2.8, "rough": true }
+      ]
+    }
+  ]
+}
