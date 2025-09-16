@@ -1,10 +1,6 @@
-import { VEHICLES } from '../systems/state.js';
+import { VEHICLES, DEFAULT_PARTY } from '../systems/state.js';
 
-const PARTY_TEMPLATE = [
-  { id: 'leader', label: 'Driver', placeholder: 'Ava' },
-  { id: 'scout', label: 'Scout', placeholder: 'Noah' },
-  { id: 'mechanic', label: 'Mechanic', placeholder: 'Maya' }
-];
+const FAMILY_NAMES = DEFAULT_PARTY.map((member) => member.name);
 
 function generateSeed() {
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
@@ -31,8 +27,8 @@ export default class SetupScreen {
     const header = document.createElement('div');
     header.className = 'screen-header';
     header.innerHTML = `
-      <h2 id="setup-screen-heading">Dial in your rig and roster</h2>
-      <p>Choose a vehicle, lock in a seed, and rename your crew. Every selection shapes your Canadian odyssey.</p>
+      <h2 id="setup-screen-heading">Dial in your rig and seed</h2>
+      <p>Choose a vehicle, lock in a seed, and roll out with the family already buckled in.</p>
     `;
     section.append(header);
 
@@ -120,30 +116,20 @@ export default class SetupScreen {
     form.append(seedRow);
 
     const partyFieldset = document.createElement('fieldset');
-    partyFieldset.innerHTML = '<legend>Name your travelling party</legend>';
+    partyFieldset.innerHTML = '<legend>Family on board</legend>';
 
-    const partyGrid = document.createElement('div');
-    partyGrid.className = 'party-grid';
+    const partyIntro = document.createElement('p');
+    partyIntro.textContent = 'This crew is ready to roll:';
 
-    PARTY_TEMPLATE.forEach((member) => {
-      const wrapper = document.createElement('label');
-      wrapper.className = 'form-row';
-      wrapper.style.background = 'var(--color-surface-alt)';
-      wrapper.style.padding = 'var(--space-3)';
-      wrapper.style.borderRadius = 'var(--radius-md)';
-      wrapper.textContent = `${member.label}`;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.name = `party-${member.id}`;
-      input.placeholder = member.placeholder;
-      input.setAttribute('data-role', member.label);
-      input.maxLength = 16;
-      input.autocomplete = 'off';
-      wrapper.append(input);
-      partyGrid.append(wrapper);
+    const rosterList = document.createElement('ul');
+    rosterList.className = 'family-roster';
+    FAMILY_NAMES.forEach((name) => {
+      const item = document.createElement('li');
+      item.textContent = name;
+      rosterList.append(item);
     });
 
-    partyFieldset.append(partyGrid);
+    partyFieldset.append(partyIntro, rosterList);
     form.append(partyFieldset);
 
     const submit = document.createElement('button');
@@ -156,13 +142,7 @@ export default class SetupScreen {
       const formData = new FormData(form);
       const vehicleId = formData.get('vehicle');
       const seedValue = Number(formData.get('seed'));
-      const party = PARTY_TEMPLATE.map((member) => ({
-        name: String(formData.get(`party-${member.id}`) || member.placeholder),
-        role: member.label,
-        health: 5,
-        status: 'Ready'
-      }));
-      this.gameState.startNewRun({ seed: seedValue, vehicleId, party });
+      this.gameState.startNewRun({ seed: seedValue, vehicleId });
       this.screenManager.navigate('map');
     });
 

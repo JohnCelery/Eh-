@@ -23,6 +23,21 @@ High‑level Architecture
 	•	Upgrades/vehicles: techs (snow tires, larger tank, CB radio); minivan/pickup/bus with different stats.
 	•	Endings: reach a coast/territory; permadeath if resources hit zero during actions.
 
+## Family Roster
+
+The travelling party is a fixed family; all runs use the same six characters. Keep their relationships and ages in mind when
+writing events or dialogue:
+
+- Merri-Ellen — mom.
+- Mike — dad.
+- Ros — daughter, age 9.
+- Jess — daughter, age 6.
+- Martha — daughter, age 3.
+- Rusty — son, age 0.
+
+In code, each party member includes a `profile` field (`profile.familyRole`, `profile.age` where known) so event logic can tap
+into this metadata while the on-screen UI keeps ages/roles implicit.
+
 Files & Folders
 
 index.html
