@@ -42,7 +42,23 @@ export default class MapScreen {
     this.actionFeedback = null;
     this.activePreviewTarget = null;
 
+    this.mapSidebar = null;
+    this.mobileControls = null;
+    this.mobileToggleButtons = [];
+    this.mobileTabButtons = new Map();
+    this.mobileCloseButton = null;
+    this.mobileDrawerOpen = false;
+    this.mobileActivePanel = 'status';
+    this.mobileResourceBoard = null;
+    this.mapLogSection = null;
+    this.mobileTriggerButton = null;
+    this.locationBody = null;
+    this.mobileViewportQuery = null;
+    this._boundMediaListener = null;
+    this.instanceId = `map-${Math.random().toString(36).slice(2, 8)}`;
+
     this._handleKeydown = this._handleKeydown.bind(this);
+    this._handleViewportResize = this._handleViewportResize.bind(this);
   }
 
   bind() {}
@@ -67,11 +83,19 @@ export default class MapScreen {
     this._refresh();
     this._syncCanvasSize();
     document.addEventListener('keydown', this._handleKeydown);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this._handleViewportResize);
+    }
+    this._updateSidebarAria();
   }
 
   deactivate() {
     document.body.classList.remove('map-mode');
     document.removeEventListener('keydown', this._handleKeydown);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', this._handleViewportResize);
+    }
+    this._closeMobileDrawer(null, { restoreFocus: false });
   }
 
   _build() {
@@ -141,25 +165,143 @@ export default class MapScreen {
 
     this.stageElement.append(instructions, srConnections, this.mapCanvas, this.mapArea, this.previewCard);
 
+    this.mobileControls = document.createElement('div');
+    this.mobileControls.className = 'map-mobile-controls';
+    const statusToggle = document.createElement('button');
+    statusToggle.type = 'button';
+    statusToggle.className = 'map-mobile-button';
+    statusToggle.dataset.target = 'status';
+    statusToggle.textContent = 'Status';
+    statusToggle.setAttribute('aria-expanded', 'false');
+    statusToggle.addEventListener('click', () => {
+      this._toggleMobileDrawer('status', statusToggle);
+    });
+    const logToggle = document.createElement('button');
+    logToggle.type = 'button';
+    logToggle.className = 'map-mobile-button';
+    logToggle.dataset.target = 'log';
+    logToggle.textContent = 'Road log';
+    logToggle.setAttribute('aria-expanded', 'false');
+    logToggle.addEventListener('click', () => {
+      this._toggleMobileDrawer('log', logToggle);
+    });
+    this.mobileControls.append(statusToggle, logToggle);
+    this.mobileToggleButtons = [statusToggle, logToggle];
+    this.stageElement.append(this.mobileControls);
+
     layout.append(this.stageElement);
 
     const sidebar = document.createElement('aside');
     sidebar.className = 'map-sidebar';
+    sidebar.dataset.open = 'false';
+    sidebar.setAttribute('role', 'complementary');
+    this.mapSidebar = sidebar;
+
+    const statusPanelId = `${this.instanceId}-panel-status`;
+    const logPanelId = `${this.instanceId}-panel-log`;
+    const statusTabId = `${this.instanceId}-tab-status`;
+    const logTabId = `${this.instanceId}-tab-log`;
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'map-mobile-close';
+    closeButton.textContent = 'Close';
+    closeButton.setAttribute('aria-label', 'Close journey details');
+    closeButton.addEventListener('click', () => {
+      this._closeMobileDrawer();
+    });
+    sidebar.append(closeButton);
+    this.mobileCloseButton = closeButton;
+
+    const tablist = document.createElement('div');
+    tablist.className = 'map-mobile-tabs';
+    tablist.setAttribute('role', 'tablist');
+    const statusTab = document.createElement('button');
+    statusTab.type = 'button';
+    statusTab.className = 'map-mobile-tab';
+    statusTab.id = statusTabId;
+    statusTab.dataset.panel = 'status';
+    statusTab.setAttribute('role', 'tab');
+    statusTab.setAttribute('aria-selected', 'true');
+    statusTab.setAttribute('aria-controls', statusPanelId);
+    statusTab.setAttribute('tabindex', '0');
+    statusTab.textContent = 'Status';
+    statusTab.addEventListener('click', () => {
+      this._setMobilePanel('status');
+    });
+    const logTab = document.createElement('button');
+    logTab.type = 'button';
+    logTab.className = 'map-mobile-tab';
+    logTab.id = logTabId;
+    logTab.dataset.panel = 'log';
+    logTab.setAttribute('role', 'tab');
+    logTab.setAttribute('aria-selected', 'false');
+    logTab.setAttribute('aria-controls', logPanelId);
+    logTab.setAttribute('tabindex', '-1');
+    logTab.textContent = 'Road log';
+    logTab.addEventListener('click', () => {
+      this._setMobilePanel('log');
+    });
+    tablist.append(statusTab, logTab);
+    sidebar.append(tablist);
+    this.mobileTabButtons.set('status', statusTab);
+    this.mobileTabButtons.set('log', logTab);
 
     this.locationDetails = document.createElement('section');
     this.locationDetails.className = 'map-location';
+    this.locationDetails.id = statusPanelId;
+    this.locationDetails.setAttribute('role', 'tabpanel');
+    this.locationDetails.setAttribute('aria-labelledby', statusTabId);
+    this.locationDetails.dataset.panel = 'status';
+    this.locationDetails.dataset.active = 'true';
+    this.mobileResourceBoard = document.createElement('div');
+    this.mobileResourceBoard.className = 'map-resources map-resources-mobile';
+    this.locationBody = document.createElement('div');
+    this.locationBody.className = 'map-location-body';
+    this.locationDetails.append(this.mobileResourceBoard, this.locationBody);
     sidebar.append(this.locationDetails);
 
     const logPanel = document.createElement('section');
     logPanel.className = 'map-log';
+    logPanel.id = logPanelId;
+    logPanel.setAttribute('role', 'tabpanel');
+    logPanel.setAttribute('aria-labelledby', logTabId);
+    logPanel.dataset.panel = 'log';
+    logPanel.dataset.active = 'false';
+    logPanel.setAttribute('aria-hidden', 'true');
     logPanel.innerHTML = '<h3>Road log</h3>';
     this.logList = document.createElement('ul');
     this.logList.className = 'map-log-list';
     logPanel.append(this.logList);
     sidebar.append(logPanel);
+    this.mapLogSection = logPanel;
+
+    this.mobileToggleButtons.forEach((button) => {
+      if (button.dataset.target === 'status') {
+        button.setAttribute('aria-controls', statusPanelId);
+      } else if (button.dataset.target === 'log') {
+        button.setAttribute('aria-controls', logPanelId);
+      }
+    });
 
     layout.append(sidebar);
     section.append(layout);
+
+    if (typeof window !== 'undefined' && !this.mobileViewportQuery && window.matchMedia) {
+      this.mobileViewportQuery = window.matchMedia('(max-width: 720px)');
+      this._boundMediaListener = (event) => {
+        this._updateSidebarAria(event.matches);
+      };
+      if (this.mobileViewportQuery.addEventListener) {
+        this.mobileViewportQuery.addEventListener('change', this._boundMediaListener);
+      } else if (this.mobileViewportQuery.addListener) {
+        this.mobileViewportQuery.addListener(this._boundMediaListener);
+      }
+    }
+
+    this._applyPanelState();
+    this._markActiveMobileButton(this.mobileActivePanel);
+    this._updateSidebarAria();
 
     if (!this.resizeObserver) {
       this.resizeObserver = new ResizeObserver(() => {
@@ -453,28 +595,47 @@ export default class MapScreen {
 
   _updateResourceBoard(snapshot) {
     const { resources, day, vehicle, timeSegment = 0 } = snapshot;
-    this.resourceBoard.innerHTML = '';
+    const entries = [];
 
     const timeLabel = TIME_LABELS[timeSegment % TIME_LABELS.length] || '';
-
-    const dayTrack = document.createElement('div');
-    dayTrack.className = 'resource-track';
-    dayTrack.innerHTML = `<span>Day</span><strong>${day}${timeLabel ? `<small>${timeLabel}</small>` : ''}</strong>`;
-    this.resourceBoard.append(dayTrack);
+    entries.push({ label: 'Day', value: String(day), detail: timeLabel });
 
     Object.entries(resources).forEach(([key, value]) => {
-      const track = document.createElement('div');
-      track.className = 'resource-track';
       const label = key.charAt(0).toUpperCase() + key.slice(1);
-      const max = snapshot.maxResources?.[key] ?? '';
-      track.innerHTML = `<span>${label}</span><strong>${value}${max ? `<small>/ ${max}</small>` : ''}</strong>`;
-      this.resourceBoard.append(track);
+      const max = snapshot.maxResources?.[key];
+      entries.push({ label, value: String(value), detail: typeof max === 'number' ? `/ ${max}` : '' });
     });
 
-    const vehicleCard = document.createElement('div');
-    vehicleCard.className = 'resource-track';
-    vehicleCard.innerHTML = `<span>Ride</span><strong>${vehicle.name}</strong>`;
-    this.resourceBoard.append(vehicleCard);
+    entries.push({ label: 'Ride', value: vehicle?.name ?? '' });
+
+    this._renderResourceTracks(this.resourceBoard, entries);
+    this._renderResourceTracks(this.mobileResourceBoard, entries);
+  }
+
+  _renderResourceTracks(container, entries) {
+    if (!container) {
+      return;
+    }
+    container.innerHTML = '';
+    entries.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+      const track = document.createElement('div');
+      track.className = 'resource-track';
+      const label = document.createElement('span');
+      label.textContent = entry.label ?? '';
+      const strong = document.createElement('strong');
+      strong.textContent = entry.value ?? '';
+      if (entry.detail) {
+        strong.append(' ');
+        const detail = document.createElement('small');
+        detail.textContent = entry.detail;
+        strong.append(detail);
+      }
+      track.append(label, strong);
+      container.append(track);
+    });
   }
 
   _updateNodes(snapshot) {
@@ -531,10 +692,10 @@ export default class MapScreen {
 
   _updateLocation(snapshot) {
     const node = this.graph.nodes.get(snapshot.location);
-    if (!node || !this.locationDetails) {
+    if (!node || !this.locationDetails || !this.locationBody) {
       return;
     }
-    this.locationDetails.innerHTML = '';
+    this.locationBody.innerHTML = '';
 
     const header = document.createElement('div');
     header.className = 'map-location-header';
@@ -557,12 +718,12 @@ export default class MapScreen {
       header.append(conditions);
     }
 
-    this.locationDetails.append(header);
+    this.locationBody.append(header);
 
     this.actionFeedback = document.createElement('p');
     this.actionFeedback.className = 'map-action-feedback';
     this.actionFeedback.setAttribute('aria-live', 'polite');
-    this.locationDetails.append(this.actionFeedback);
+    this.locationBody.append(this.actionFeedback);
 
     const actions = this.gameState.getActionOptions(node.id).filter((option) => option.definition);
 
@@ -625,7 +786,7 @@ export default class MapScreen {
         actionList.append(li);
       });
       actionSection.append(actionList);
-      this.locationDetails.append(actionSection);
+      this.locationBody.append(actionSection);
     }
 
     const routes = this.activeConnections;
@@ -658,7 +819,7 @@ export default class MapScreen {
       });
 
       routeSection.append(routeList);
-      this.locationDetails.append(routeSection);
+      this.locationBody.append(routeSection);
     }
   }
 
@@ -670,6 +831,151 @@ export default class MapScreen {
       li.textContent = entry;
       this.logList.append(li);
     });
+  }
+
+  _toggleMobileDrawer(panelId, triggerButton) {
+    if (!this._isMobileView()) {
+      return;
+    }
+    if (!this.mapSidebar) {
+      return;
+    }
+    if (!this.mobileDrawerOpen) {
+      if (panelId) {
+        this._setMobilePanel(panelId);
+      }
+      this._openMobileDrawer(triggerButton);
+      return;
+    }
+    if (panelId && panelId !== this.mobileActivePanel) {
+      this._setMobilePanel(panelId);
+      this._markActiveMobileButton(this.mobileActivePanel);
+      return;
+    }
+    this._closeMobileDrawer(triggerButton);
+  }
+
+  _openMobileDrawer(triggerButton) {
+    if (!this.mapSidebar) {
+      return;
+    }
+    this.mobileDrawerOpen = true;
+    this.mobileTriggerButton = triggerButton || null;
+    this._applyPanelState();
+    this._updateSidebarAria();
+    const activeTab = this.mobileTabButtons.get(this.mobileActivePanel);
+    if (activeTab) {
+      activeTab.focus({ preventScroll: true });
+    } else {
+      this.mapSidebar.focus({ preventScroll: true });
+    }
+  }
+
+  _closeMobileDrawer(triggerButton, options = {}) {
+    if (!this.mapSidebar) {
+      return;
+    }
+    const { restoreFocus = true } = options;
+    const returnTarget = triggerButton || this.mobileTriggerButton;
+    this.mobileDrawerOpen = false;
+    this._updateSidebarAria();
+    this.mobileTriggerButton = null;
+    if (restoreFocus && returnTarget && typeof returnTarget.focus === 'function') {
+      returnTarget.focus({ preventScroll: true });
+    }
+  }
+
+  _setMobilePanel(panelId) {
+    if (!panelId || !this.mobileTabButtons.has(panelId)) {
+      return;
+    }
+    this.mobileActivePanel = panelId;
+    this.mobileTabButtons.forEach((tab, id) => {
+      const isActive = id === panelId;
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      tab.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+    this._applyPanelState();
+    if (this._isMobileView()) {
+      this._updateSidebarAria();
+    }
+  }
+
+  _markActiveMobileButton(activePanel) {
+    const isMobile = this._isMobileView();
+    this.mobileToggleButtons.forEach((button) => {
+      const isActive = Boolean(isMobile && this.mobileDrawerOpen && activePanel && button.dataset.target === activePanel);
+      button.dataset.active = String(isActive);
+      button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+    });
+  }
+
+  _applyPanelState(forceMatch) {
+    const panels = [
+      ['status', this.locationDetails],
+      ['log', this.mapLogSection]
+    ];
+    const isMobile = this._isMobileView(forceMatch);
+    const activePanel = this.mobileActivePanel || 'status';
+    panels.forEach(([panelId, panel]) => {
+      if (!panel) {
+        return;
+      }
+      const isActive = !isMobile || panelId === activePanel;
+      panel.dataset.active = String(isActive);
+      if (isMobile) {
+        panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+      } else {
+        panel.setAttribute('aria-hidden', 'false');
+      }
+    });
+  }
+
+  _updateSidebarAria(forceMatch) {
+    if (!this.mapSidebar) {
+      return;
+    }
+    const isMobile = this._isMobileView(forceMatch);
+    if (isMobile) {
+      this.mapSidebar.dataset.open = this.mobileDrawerOpen ? 'true' : 'false';
+      this.mapSidebar.setAttribute('role', 'dialog');
+      this.mapSidebar.setAttribute('aria-modal', this.mobileDrawerOpen ? 'true' : 'false');
+      this.mapSidebar.setAttribute('aria-hidden', this.mobileDrawerOpen ? 'false' : 'true');
+      this.mapSidebar.setAttribute('tabindex', '-1');
+      const activeTab = this.mobileTabButtons.get(this.mobileActivePanel);
+      if (activeTab?.id) {
+        this.mapSidebar.setAttribute('aria-labelledby', activeTab.id);
+      } else {
+        this.mapSidebar.removeAttribute('aria-labelledby');
+      }
+    } else {
+      this.mapSidebar.dataset.open = 'false';
+      this.mapSidebar.setAttribute('role', 'complementary');
+      this.mapSidebar.removeAttribute('aria-modal');
+      this.mapSidebar.setAttribute('aria-hidden', 'false');
+      this.mapSidebar.removeAttribute('tabindex');
+      this.mapSidebar.removeAttribute('aria-labelledby');
+      this.mobileDrawerOpen = false;
+    }
+    this._applyPanelState(isMobile);
+    this._markActiveMobileButton(this.mobileDrawerOpen ? this.mobileActivePanel : null);
+  }
+
+  _handleViewportResize() {
+    this._updateSidebarAria();
+  }
+
+  _isMobileView(forceMatch) {
+    if (typeof forceMatch === 'boolean') {
+      return forceMatch;
+    }
+    if (this.mobileViewportQuery) {
+      return this.mobileViewportQuery.matches;
+    }
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 720;
+    }
+    return false;
   }
 
   _describeAction(action) {
@@ -749,6 +1055,11 @@ export default class MapScreen {
   }
 
   _handleKeydown(event) {
+    if (event.key === 'Escape' && this.mobileDrawerOpen && this._isMobileView()) {
+      this._closeMobileDrawer();
+      event.preventDefault();
+      return;
+    }
     if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       return;
     }
