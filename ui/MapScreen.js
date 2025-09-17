@@ -167,6 +167,7 @@ export default class MapScreen {
     this.previewCard = document.createElement('div');
     this.previewCard.className = 'map-preview';
     this.previewCard.setAttribute('aria-live', 'polite');
+    this.previewCard.setAttribute('aria-hidden', 'true');
     this.previewCard.dataset.visible = 'false';
     this.previewCard.dataset.mode = 'peek';
     const previewHeading = document.createElement('h4');
@@ -1288,6 +1289,7 @@ export default class MapScreen {
     const mode = options.mode || 'peek';
     this.previewCard.dataset.visible = 'true';
     this.previewCard.dataset.mode = mode;
+    this.previewCard.setAttribute('aria-hidden', 'false');
     this.activePreviewTarget = estimate.to.id;
     if (mode === 'confirm') {
       this.pendingTravelNodeId = estimate.to.id;
@@ -1406,6 +1408,7 @@ export default class MapScreen {
     }
     this.previewCard.dataset.visible = 'false';
     this.previewCard.dataset.mode = 'peek';
+    this.previewCard.setAttribute('aria-hidden', 'true');
     this.activePreviewTarget = null;
     this.pendingTravelNodeId = null;
     this.suppressPeekTarget = null;
