@@ -167,6 +167,7 @@ export default class MapScreen {
     this.previewCard = document.createElement('div');
     this.previewCard.className = 'map-preview';
     this.previewCard.setAttribute('aria-live', 'polite');
+    this.previewCard.setAttribute('aria-hidden', 'true');
     this.previewCard.dataset.visible = 'false';
     this.previewCard.dataset.mode = 'peek';
     const previewHeading = document.createElement('h4');
@@ -704,6 +705,54 @@ export default class MapScreen {
     this._updateLocation(snapshot);
     this._updateLog(snapshot);
     this._drawCanvas();
+    this._restorePreview(snapshot);
+  }
+
+  _restorePreview(snapshot) {
+    if (!this.previewCard || this.previewCard.dataset.visible !== 'true') {
+      return;
+    }
+
+    const currentId = snapshot?.location;
+    if (!currentId) {
+      this._hidePreview(true);
+      return;
+    }
+
+    const ensureEstimate = (targetId) => {
+      if (!targetId) {
+        return null;
+      }
+      const isReachable = Array.isArray(this.activeConnections)
+        && this.activeConnections.some((entry) => entry.node.id === targetId);
+      if (!isReachable) {
+        return null;
+      }
+      return this.gameState.getTravelEstimate(currentId, targetId);
+    };
+
+    if (this.previewCard.dataset.mode === 'confirm') {
+      const targetId = this.pendingTravelNodeId;
+      const estimate = ensureEstimate(targetId);
+      if (!estimate) {
+        this._hidePreview(true);
+        return;
+      }
+      this._showPreview(estimate, { mode: 'confirm' });
+      return;
+    }
+
+    const activeTargetId = this.activePreviewTarget;
+    if (!activeTargetId) {
+      return;
+    }
+
+    const estimate = ensureEstimate(activeTargetId);
+    if (!estimate) {
+      this._hidePreview(true);
+      return;
+    }
+    this._showPreview(estimate, { mode: 'peek' });
   }
 
   _updateResourceBoard(snapshot) {
@@ -1210,6 +1259,9 @@ export default class MapScreen {
 
   _maybePreviewNode(nodeId) {
     const snapshot = this.currentSnapshot;
+    if (this.previewCard?.dataset.mode === 'confirm') {
+      return;
+    }
     if (this.suppressPeekTarget === nodeId) {
       this.suppressPeekTarget = null;
       return;
@@ -1237,6 +1289,7 @@ export default class MapScreen {
     const mode = options.mode || 'peek';
     this.previewCard.dataset.visible = 'true';
     this.previewCard.dataset.mode = mode;
+    this.previewCard.setAttribute('aria-hidden', 'false');
     this.activePreviewTarget = estimate.to.id;
     if (mode === 'confirm') {
       this.pendingTravelNodeId = estimate.to.id;
@@ -1346,12 +1399,16 @@ export default class MapScreen {
     }
   }
 
-  _hidePreview() {
+  _hidePreview(force = false) {
     if (!this.previewCard) {
+      return;
+    }
+    if (!force && this.previewCard.dataset.mode === 'confirm') {
       return;
     }
     this.previewCard.dataset.visible = 'false';
     this.previewCard.dataset.mode = 'peek';
+    this.previewCard.setAttribute('aria-hidden', 'true');
     this.activePreviewTarget = null;
     this.pendingTravelNodeId = null;
     this.suppressPeekTarget = null;
@@ -1370,12 +1427,12 @@ export default class MapScreen {
     if (this.activePreviewTarget !== nodeId) {
       return;
     }
-    this._hidePreview();
+    this._hidePreview(true);
   }
 
   _dismissTravelPreview() {
     const targetId = this.pendingTravelNodeId;
-    this._hidePreview();
+    this._hidePreview(true);
     if (!targetId || !this.mapArea) {
       return;
     }
@@ -1408,7 +1465,7 @@ export default class MapScreen {
 
     const result = this.gameState.travelTo(nodeId);
 
-    this._hidePreview();
+    this._hidePreview(true);
     this._refresh();
 
     const arrivalContext = {

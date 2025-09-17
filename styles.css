@@ -572,19 +572,27 @@ legend {
   border: 1px solid rgba(144, 195, 255, 0.28);
   box-shadow: 0 1.65rem 3.5rem rgba(4, 20, 40, 0.58);
   backdrop-filter: blur(12px);
-  transition: opacity var(--transition), transform var(--transition);
+  transition: opacity var(--transition), transform var(--transition), visibility 0s linear 0.18s;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(0.75rem);
+  transform: translate3d(-160%, 0.75rem, 0);
   display: grid;
   gap: 0.5rem;
-  z-index: 5;
+  z-index: -1;
+  visibility: hidden;
 }
 
 .map-preview[data-visible="true"] {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  z-index: 5;
+  transition: opacity var(--transition), transform var(--transition), visibility 0s linear 0s;
+}
+
+.map-preview:not([data-visible="true"]) * {
+  pointer-events: none;
 }
 
 .map-preview-title {
