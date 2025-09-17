@@ -704,6 +704,54 @@ export default class MapScreen {
     this._updateLocation(snapshot);
     this._updateLog(snapshot);
     this._drawCanvas();
+    this._restorePreview(snapshot);
+  }
+
+  _restorePreview(snapshot) {
+    if (!this.previewCard || this.previewCard.dataset.visible !== 'true') {
+      return;
+    }
+
+    const currentId = snapshot?.location;
+    if (!currentId) {
+      this._hidePreview(true);
+      return;
+    }
+
+    const ensureEstimate = (targetId) => {
+      if (!targetId) {
+        return null;
+      }
+      const isReachable = Array.isArray(this.activeConnections)
+        && this.activeConnections.some((entry) => entry.node.id === targetId);
+      if (!isReachable) {
+        return null;
+      }
+      return this.gameState.getTravelEstimate(currentId, targetId);
+    };
+
+    if (this.previewCard.dataset.mode === 'confirm') {
+      const targetId = this.pendingTravelNodeId;
+      const estimate = ensureEstimate(targetId);
+      if (!estimate) {
+        this._hidePreview(true);
+        return;
+      }
+      this._showPreview(estimate, { mode: 'confirm' });
+      return;
+    }
+
+    const activeTargetId = this.activePreviewTarget;
+    if (!activeTargetId) {
+      return;
+    }
+
+    const estimate = ensureEstimate(activeTargetId);
+    if (!estimate) {
+      this._hidePreview(true);
+      return;
+    }
+    this._showPreview(estimate, { mode: 'peek' });
   }
 
   _updateResourceBoard(snapshot) {
