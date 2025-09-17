@@ -1210,6 +1210,9 @@ export default class MapScreen {
 
   _maybePreviewNode(nodeId) {
     const snapshot = this.currentSnapshot;
+    if (this.previewCard?.dataset.mode === 'confirm') {
+      return;
+    }
     if (this.suppressPeekTarget === nodeId) {
       this.suppressPeekTarget = null;
       return;
