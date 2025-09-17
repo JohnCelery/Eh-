@@ -2,7 +2,6 @@ import { RNG } from './rng.js';
 import { loadLegacyGraph } from './graph.js';
 import { generateWorldGraph } from './worldgen.js';
 import { computeActionPreview, getActionDefinition, rollActionOutcome } from './nodeActions.js';
-import { maybeTriggerTravelEncounter } from './travelEncounters.js';
 
 function createMemoryStorage() {
   const store = new Map();
@@ -195,6 +194,11 @@ export class GameState {
       flags: {
         gameOver: false
       },
+      encounters: {
+        flags: {},
+        cooldowns: {},
+        buffs: []
+      },
       world: {
         seed: resolvedSeed,
         version: null,
@@ -231,6 +235,249 @@ export class GameState {
     this._persist();
   }
 
+  _ensureEncounterState() {
+    if (!this.state) {
+      return { flags: {}, cooldowns: {}, buffs: [] };
+    }
+    if (!this.state.encounters) {
+      this.state.encounters = { flags: {}, cooldowns: {}, buffs: [] };
+    }
+    if (!this.state.encounters.flags) {
+      this.state.encounters.flags = {};
+    }
+    if (!this.state.encounters.cooldowns) {
+      this.state.encounters.cooldowns = {};
+    }
+    if (!Array.isArray(this.state.encounters.buffs)) {
+      this.state.encounters.buffs = [];
+    }
+    return this.state.encounters;
+  }
+
+  getEncounterState() {
+    return this._ensureEncounterState();
+  }
+
+  hasEncounterFlag(flag) {
+    const encounters = this._ensureEncounterState();
+    return Boolean(encounters.flags[flag]);
+  }
+
+  setEncounterFlag(flag, value = true) {
+    const encounters = this._ensureEncounterState();
+    encounters.flags[flag] = value;
+    this._persist();
+  }
+
+  clearEncounterFlag(flag) {
+    const encounters = this._ensureEncounterState();
+    delete encounters.flags[flag];
+    this._persist();
+  }
+
+  recordEncounterTrigger(eventId) {
+    const encounters = this._ensureEncounterState();
+    encounters.cooldowns[eventId] = { day: this.state?.day ?? 0 };
+    this._persist();
+  }
+
+  getEncounterCooldown(eventId) {
+    const encounters = this._ensureEncounterState();
+    return encounters.cooldowns[eventId] || null;
+  }
+
+  addEncounterBuff(buff) {
+    if (!buff || !buff.id) {
+      return;
+    }
+    const encounters = this._ensureEncounterState();
+    encounters.buffs = encounters.buffs.filter((entry) => entry && entry.id !== buff.id);
+    const next = {
+      id: buff.id,
+      kind: buff.kind || 'generic',
+      amount: typeof buff.amount === 'number' ? buff.amount : 0,
+      remaining: typeof buff.remaining === 'number' ? buff.remaining : (typeof buff.duration === 'number' ? buff.duration : 1),
+      tick: buff.tick || 'travel',
+      meta: buff.meta ? { ...buff.meta } : {},
+      label: buff.label || null
+    };
+    encounters.buffs.push(next);
+    this._persist();
+  }
+
+  removeEncounterBuff(buffId) {
+    if (!buffId) {
+      return;
+    }
+    const encounters = this._ensureEncounterState();
+    const before = encounters.buffs.length;
+    encounters.buffs = encounters.buffs.filter((buff) => buff && buff.id !== buffId);
+    if (before !== encounters.buffs.length) {
+      this._persist();
+    }
+  }
+
+  consumeEncounterBuff(kind) {
+    if (!kind) {
+      return false;
+    }
+    const encounters = this._ensureEncounterState();
+    const target = encounters.buffs.find((buff) => buff && buff.kind === kind);
+    if (!target) {
+      return false;
+    }
+    const remaining = typeof target.remaining === 'number' ? target.remaining - 1 : 0;
+    if (remaining > 0) {
+      target.remaining = remaining;
+    } else {
+      encounters.buffs = encounters.buffs.filter((buff) => buff !== target);
+    }
+    this._persist();
+    return true;
+  }
+
+  getEncounterBuffs() {
+    const encounters = this._ensureEncounterState();
+    return encounters.buffs.slice();
+  }
+
+  _tickEncounterBuffs() {
+    if (!this.state) {
+      return;
+    }
+    const encounters = this._ensureEncounterState();
+    let changed = false;
+    encounters.buffs = encounters.buffs.filter((buff) => {
+      if (!buff) {
+        changed = true;
+        return false;
+      }
+      if (buff.tick && buff.tick !== 'travel') {
+        return true;
+      }
+      const remaining = typeof buff.remaining === 'number' ? buff.remaining - 1 : 0;
+      if (remaining > 0) {
+        buff.remaining = remaining;
+        return true;
+      }
+      changed = true;
+      return false;
+    });
+    if (changed) {
+      this._persist();
+    }
+  }
+
+  adjustResources(changes = {}) {
+    if (!this.state || !changes) {
+      return;
+    }
+    Object.entries(changes).forEach(([resource, delta]) => {
+      if (typeof this.state.resources?.[resource] !== 'number') {
+        return;
+      }
+      const max = this.state.maxResources?.[resource];
+      const current = this.state.resources[resource];
+      const next = current + delta;
+      if (typeof max === 'number') {
+        this.state.resources[resource] = Math.max(0, Math.min(max, next));
+      } else {
+        this.state.resources[resource] = Math.max(0, next);
+      }
+    });
+    this._persist();
+  }
+
+  shiftDays(amount) {
+    if (!this.state || !amount) {
+      return;
+    }
+    const next = (this.state.day ?? 1) + amount;
+    this.state.day = Math.max(1, next);
+    this.state.timeSegment = 0;
+    this._persist();
+  }
+
+  _ensureKnowledgeEntry(nodeId) {
+    if (!this.state) {
+      return null;
+    }
+    if (!this.state.knowledge) {
+      this.state.knowledge = {};
+    }
+    if (!this.state.knowledge[nodeId]) {
+      this.state.knowledge[nodeId] = { seen: false, exits: {} };
+    }
+    if (!this.state.knowledge[nodeId].exits) {
+      this.state.knowledge[nodeId].exits = {};
+    }
+    return this.state.knowledge[nodeId];
+  }
+
+  revealNode(nodeId) {
+    this._markKnowledge(nodeId);
+    this._persist();
+  }
+
+  revealNeighbors(nodeId, options = {}) {
+    if (!this.worldGraph) {
+      return [];
+    }
+    const node = this.worldGraph.nodes.get(nodeId);
+    if (!node) {
+      return [];
+    }
+    const results = [];
+    node.connections.forEach((connection) => {
+      const neighbor = this.worldGraph.nodes.get(connection.id);
+      if (!neighbor) {
+        return;
+      }
+      if (typeof options.filter === 'function' && !options.filter(connection, neighbor)) {
+        return;
+      }
+      this._markKnowledge(neighbor.id);
+      const entry = this._ensureKnowledgeEntry(nodeId);
+      if (options.hazardHints) {
+        entry.exits[neighbor.id] = {
+          hazard: typeof connection.hazard === 'number' ? connection.hazard : 0
+        };
+      }
+      results.push({
+        nodeId: neighbor.id,
+        hazard: typeof connection.hazard === 'number' ? connection.hazard : 0
+      });
+    });
+    if (results.length) {
+      this._persist();
+    }
+    return results;
+  }
+
+  teleportTo(nodeId, options = {}) {
+    if (!this.state || !this.worldGraph) {
+      return false;
+    }
+    const target = this.worldGraph.nodes.get(nodeId);
+    if (!target) {
+      return false;
+    }
+    this.state.location = nodeId;
+    if (!this.state.visited.includes(nodeId)) {
+      this.state.visited.push(nodeId);
+    }
+    this._markKnowledge(nodeId);
+    if (typeof options.dayShift === 'number' && options.dayShift !== 0) {
+      this.shiftDays(options.dayShift);
+    } else {
+      this._persist();
+    }
+    if (options.log) {
+      this.appendLog(options.log);
+    }
+    return true;
+  }
+
   async ensureWorldReady() {
     await this._ensureWorldGraph();
     return this.worldGraph;
@@ -260,7 +507,7 @@ export class GameState {
     const gasCost = Math.max(1, Math.round(distance * efficiency * roughness));
     const snackCost = 1;
     const rideMax = hazard > 0.75 ? 3 : hazard > 0.5 ? 2 : hazard > 0.25 ? 1 : 0;
-    return {
+    const base = {
       from: fromNode,
       to: toNode,
       connection,
@@ -272,6 +519,7 @@ export class GameState {
       timeCost: 1,
       rideRange: { min: 0, max: rideMax }
     };
+    return this._applyTravelPreviewModifiers(base);
   }
 
   getActionOptions(nodeId) {
@@ -366,6 +614,80 @@ export class GameState {
     };
   }
 
+  _applyTravelPreviewModifiers(estimate) {
+    const result = {
+      ...estimate,
+      rideRange: { ...estimate.rideRange },
+      modifiers: Array.isArray(estimate.modifiers) ? estimate.modifiers.slice() : []
+    };
+    const fromId = estimate.from?.id;
+    const toId = estimate.to?.id;
+    if (fromId && toId) {
+      const knowledge = this.state?.knowledge?.[fromId];
+      const hazardHint = knowledge?.exits?.[toId]?.hazard;
+      if (typeof hazardHint === 'number') {
+        result.knownHazard = hazardHint;
+      }
+    }
+
+    const buffs = this.getEncounterBuffs();
+    let hazard = estimate.hazard;
+    let gasCost = estimate.gasCost;
+    let snackCost = estimate.snackCost;
+    let skipHazard = false;
+    let previewTight = Boolean(result.previewTight);
+
+    buffs.forEach((buff) => {
+      if (!buff) {
+        return;
+      }
+      if (buff.kind === 'hazard') {
+        hazard += buff.amount;
+        if (buff.label && !result.modifiers.includes(buff.label)) {
+          result.modifiers.push(buff.label);
+        }
+      } else if (buff.kind === 'skip-hazard' && (buff.remaining ?? 0) > 0) {
+        skipHazard = true;
+        if (buff.label && !result.modifiers.includes(buff.label)) {
+          result.modifiers.push(buff.label);
+        }
+      } else if (buff.kind === 'travel-gas') {
+        gasCost += buff.amount;
+        if (buff.label && !result.modifiers.includes(buff.label)) {
+          result.modifiers.push(buff.label);
+        }
+      } else if (buff.kind === 'travel-snacks') {
+        snackCost += buff.amount;
+        if (buff.label && !result.modifiers.includes(buff.label)) {
+          result.modifiers.push(buff.label);
+        }
+      } else if (buff.kind === 'preview-tight') {
+        previewTight = true;
+        if (buff.label && !result.modifiers.includes(buff.label)) {
+          result.modifiers.push(buff.label);
+        }
+      }
+    });
+
+    hazard = Math.max(0, Math.min(1, hazard));
+    gasCost = Math.max(0, Math.round(gasCost));
+    snackCost = Math.max(0, Math.round(snackCost));
+
+    result.hazard = hazard;
+    result.gasCost = gasCost;
+    result.snackCost = snackCost;
+    result.skipHazard = skipHazard;
+    result.previewTight = previewTight;
+
+    if (skipHazard) {
+      result.rideRange = { min: 0, max: 0 };
+    } else {
+      const rideMax = hazard > 0.75 ? 3 : hazard > 0.5 ? 2 : hazard > 0.25 ? 1 : 0;
+      result.rideRange = { min: 0, max: rideMax };
+    }
+    return result;
+  }
+
   travelTo(nodeId, _context = {}) {
     if (!this.state || this.state.flags.gameOver) {
       return null;
@@ -389,7 +711,8 @@ export class GameState {
 
     let rideDamage = 0;
     const hazard = estimate.hazard;
-    if (hazard > 0.15) {
+    const skipHazard = Boolean(estimate.skipHazard);
+    if (!skipHazard && hazard > 0.15) {
       const hazardRoll = this.rng.nextFloat();
       if (hazardRoll < hazard) {
         if (hazard > 0.75) {
@@ -400,6 +723,9 @@ export class GameState {
           rideDamage = 1;
         }
       }
+    }
+    if (skipHazard) {
+      this.consumeEncounterBuff('skip-hazard');
     }
     this.state.resources.ride = Math.max(0, this.state.resources.ride - rideDamage);
 
@@ -416,18 +742,13 @@ export class GameState {
     }
     this._markKnowledge(nodeId);
 
-    maybeTriggerTravelEncounter(this, {
-      fromNodeId: previous,
-      toNodeId: nodeId,
-      distance: estimate.distance,
-      roughness: estimate.roughness
-    });
-
     const fromName = estimate.from?.name || previous;
     const toName = estimate.to?.name || nodeId;
     const summary = `Drove from ${fromName} to ${toName}. -${gasCost} gas, -${snackCost} snacks${rideDamage ? `, ride -${rideDamage}` : ''}.`;
     this.appendLog(summary);
     this._syncRng();
+
+    this._tickEncounterBuffs();
 
     const depleted = this.resourcesDepleted();
     if (depleted.length > 0) {
@@ -602,6 +923,27 @@ export class GameState {
     }
     if (!this.state.actionHistory) {
       this.state.actionHistory = {};
+    }
+    if (!this.state.encounters) {
+      this.state.encounters = { flags: {}, cooldowns: {}, buffs: [] };
+    } else {
+      if (!this.state.encounters.flags) {
+        this.state.encounters.flags = {};
+      }
+      if (!this.state.encounters.cooldowns) {
+        this.state.encounters.cooldowns = {};
+      }
+      if (!Array.isArray(this.state.encounters.buffs)) {
+        this.state.encounters.buffs = [];
+      }
+    }
+    if (this.state.knowledge) {
+      Object.keys(this.state.knowledge).forEach((key) => {
+        const entry = this.state.knowledge[key];
+        if (entry && typeof entry === 'object' && !entry.exits) {
+          entry.exits = {};
+        }
+      });
     }
     if (!this.state.world) {
       this.state.world = { version: 1, type: 'legacy', seed: this.state.seed };
