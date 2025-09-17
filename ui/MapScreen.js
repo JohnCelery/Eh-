@@ -1,4 +1,5 @@
 import { getConnections } from '../systems/graph.js';
+import TravelBanner from './TravelBanner.js';
 
 const TIME_LABELS = ['Morning', 'Midday', 'Evening', 'Night'];
 
@@ -63,6 +64,11 @@ export default class MapScreen {
     this._boundMediaListener = null;
     this.instanceId = `map-${Math.random().toString(36).slice(2, 8)}`;
 
+    this.travelBanner = null;
+    this.travelBannerContainer = null;
+    this.activeTravelEncounter = null;
+    this.activeArrivalEncounter = null;
+
     this._handleKeydown = this._handleKeydown.bind(this);
     this._handleViewportResize = this._handleViewportResize.bind(this);
   }
@@ -125,6 +131,10 @@ export default class MapScreen {
     topbar.append(this.resourceBoard);
 
     section.append(topbar);
+
+    this.travelBannerContainer = document.createElement('div');
+    this.travelBannerContainer.className = 'travel-banner-slot';
+    section.append(this.travelBannerContainer);
 
     const layout = document.createElement('div');
     layout.className = 'map-layout';
@@ -197,6 +207,10 @@ export default class MapScreen {
     this.previewDismissButton = dismissButton;
 
     this.stageElement.append(instructions, srConnections, this.mapCanvas, this.mapArea, this.previewCard);
+
+    if (!this.travelBanner) {
+      this.travelBanner = new TravelBanner(this.travelBannerContainer);
+    }
 
     this.mobileControls = document.createElement('div');
     this.mobileControls.className = 'map-mobile-controls';
@@ -1254,12 +1268,27 @@ export default class MapScreen {
         this.previewStats.append(dt, dd);
       };
       addStat('Gas', `${estimate.gasCost} (distance ${estimate.distance.toFixed(1)} × eff ${efficiency.toFixed(2)} × rough ${estimate.roughness.toFixed(2)})`);
-      addStat('Ride risk', `0–${estimate.rideRange.max}`);
+      if (estimate.skipHazard) {
+        addStat('Ride risk', 'Protected');
+      } else {
+        addStat('Ride risk', `0–${estimate.rideRange.max}`);
+      }
+      if (estimate.previewTight || typeof estimate.knownHazard === 'number') {
+        const hazardValue = typeof estimate.knownHazard === 'number' ? estimate.knownHazard : estimate.hazard;
+        const percent = Math.round(Math.max(0, Math.min(1, hazardValue)) * 100);
+        addStat('Hazard', `${percent}% chance of trouble`);
+      }
       addStat('Snacks', `-${estimate.snackCost}`);
       addStat('Time', '+1 segment');
     }
     if (this.previewYields) {
       this.previewYields.innerHTML = '';
+      if (Array.isArray(estimate.modifiers) && estimate.modifiers.length) {
+        const modifierNote = document.createElement('p');
+        modifierNote.className = 'map-preview-note';
+        modifierNote.textContent = estimate.modifiers.join(' ');
+        this.previewYields.append(modifierNote);
+      }
       const known = Boolean(this.currentSnapshot?.knowledge?.[estimate.to.id]?.seen)
         || this.currentSnapshot?.visited?.includes(estimate.to.id);
       if (!known) {
@@ -1374,36 +1403,129 @@ export default class MapScreen {
       return;
     }
 
+    const originNode = this.graph?.nodes?.get(currentId) || { id: currentId };
+    const travelContext = this._createTravelContext(target.node, target.link, originNode);
+
     const result = this.gameState.travelTo(nodeId);
 
     this._hidePreview();
     this._refresh();
 
-    if (result?.depleted?.length) {
-      this.eventModal.showOutcome(`Resources running low: ${result.depleted.join(', ')}`);
-    }
+    const arrivalContext = {
+      nodeId,
+      node: target.node,
+      region: target.node?.region || null
+    };
 
-    const event = this.eventEngine.maybeTrigger('travel', this.gameState);
-    if (event) {
-      this.gameState.appendLog(`Encountered: ${event.title || 'an event'}.`);
-      this.eventModal.open(event, {
-        onChoice: (choice) => this._resolveEventChoice(event, choice),
-        onClose: () => {
-          this._refresh();
-        }
-      });
+    this._handleTravelEncounter(travelContext, () => {
+      this._handleArrivalEncounter(arrivalContext);
+    });
+  }
+
+  _createTravelContext(destinationNode, connection, originNode = null) {
+    let fromNode = originNode || null;
+    if (!fromNode) {
+      const fromId = this.currentSnapshot?.location;
+      fromNode = fromId ? this.graph?.nodes?.get(fromId) || { id: fromId } : null;
+    }
+    const hazard = typeof connection?.hazard === 'number' ? connection.hazard : 0;
+    const tags = [];
+    if (connection?.rough) {
+      tags.push('rough');
+    }
+    if (hazard >= 0.6) {
+      tags.push('hazard-high');
+    } else if (hazard >= 0.3) {
+      tags.push('hazard-medium');
+    } else {
+      tags.push('hazard-low');
+    }
+    if (typeof connection?.distance === 'number' && connection.distance > 1.6) {
+      tags.push('long');
+    }
+    return {
+      fromNodeId: fromNode?.id || null,
+      toNodeId: destinationNode?.id || null,
+      fromNode,
+      toNode: destinationNode || null,
+      connection,
+      region: destinationNode?.region || null,
+      tags
+    };
+  }
+
+  _handleTravelEncounter(context, done) {
+    const encounter = this.eventEngine.maybeTrigger('travel', this.gameState, context);
+    if (!encounter) {
+      done();
+      return;
+    }
+    encounter.context = context;
+    this.activeTravelEncounter = encounter;
+    if (!this.travelBanner) {
+      this.travelBanner = new TravelBanner(this.travelBannerContainer);
+    }
+    this.travelBanner.open(encounter, {
+      onChoice: (stage, choice) => this._resolveTravelChoice(encounter, stage, choice, context),
+      onComplete: () => {
+        this.travelBanner.close();
+        this.activeTravelEncounter = null;
+        done();
+      }
+    });
+  }
+
+  _resolveTravelChoice(encounter, stage, choice, context) {
+    try {
+      const result = this.eventEngine.resolveChoice(encounter.id, stage.id, choice.id, this.gameState, context);
+      const outcomeText = result.outcome || 'The road kept humming.';
+      const finalStage = !result.nextStage;
+      if (result.nextStage) {
+        encounter.stage = result.nextStage;
+        this.travelBanner.setStage(result.nextStage);
+        this.travelBanner.showOutcome(outcomeText, { final: false });
+      } else {
+        this.travelBanner.showOutcome(outcomeText, { final: true });
+      }
+      this._refresh();
+    } catch (error) {
+      console.error('Failed to resolve travel encounter choice', error);
+      this.travelBanner.showOutcome('The moment slipped by.', { final: true });
     }
   }
 
-  _resolveEventChoice(event, choice) {
+  _handleArrivalEncounter(context) {
+    const encounter = this.eventEngine.maybeTrigger('arrival', this.gameState, context);
+    if (!encounter) {
+      return;
+    }
+    encounter.context = context;
+    this.activeArrivalEncounter = encounter;
+    this.eventModal.open(encounter, {
+      onChoice: (stage, choice) => this._resolveArrivalChoice(encounter, stage, choice, context),
+      onClose: () => {
+        this.activeArrivalEncounter = null;
+        this._refresh();
+      }
+    });
+  }
+
+  _resolveArrivalChoice(encounter, stage, choice, context) {
     try {
-      const result = this.eventEngine.resolveChoice(event.id, choice.id, this.gameState);
-      const outcomeText = result.outcome || 'The road rolls on.';
-      this.eventModal.showOutcome(outcomeText);
+      const result = this.eventEngine.resolveChoice(encounter.id, stage.id, choice.id, this.gameState, context);
+      const finalStage = !result.nextStage;
+      const outcomeText = result.outcome || 'The scene settled.';
+      if (result.nextStage) {
+        encounter.stage = result.nextStage;
+        this.eventModal.setStage(result.nextStage);
+        this.eventModal.showOutcome(outcomeText, { lock: false });
+      } else {
+        this.eventModal.showOutcome(outcomeText, { lock: true });
+      }
       this._refresh();
     } catch (error) {
-      console.error('Failed to resolve event choice', error);
-      this.eventModal.showOutcome('That choice is still under construction.');
+      console.error('Failed to resolve arrival encounter choice', error);
+      this.eventModal.showOutcome('That choice fizzled out.', { lock: true });
     }
   }
 }

@@ -413,6 +413,97 @@ legend {
   font-weight: 500;
 }
 
+.travel-banner-slot {
+  width: 100%;
+  padding-block: clamp(0.5rem, 2vw, 1rem) clamp(0.25rem, 1.5vw, 0.75rem);
+  padding-inline: calc(clamp(0.75rem, 3vw, 1.5rem) + env(safe-area-inset-left))
+    calc(clamp(0.75rem, 3vw, 1.5rem) + env(safe-area-inset-right));
+}
+
+.travel-banner {
+  background: linear-gradient(135deg, rgba(8, 40, 78, 0.92), rgba(5, 21, 45, 0.92));
+  border: 1px solid rgba(144, 195, 255, 0.24);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1.5rem 3rem rgba(2, 10, 20, 0.5);
+  padding: clamp(0.9rem, 2vw, 1.35rem);
+  color: #f4fbff;
+  display: grid;
+  gap: clamp(0.5rem, 2vw, 0.9rem);
+}
+
+.travel-banner-title {
+  margin: 0;
+  font-size: clamp(1.05rem, 3vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.travel-banner-text {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(225, 240, 255, 0.92);
+}
+
+.travel-banner-choices {
+  display: grid;
+  gap: clamp(0.4rem, 2vw, 0.75rem);
+}
+
+.travel-banner-choice {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #f4fbff;
+  border-radius: var(--radius-sm);
+  padding: clamp(0.65rem, 2vw, 0.85rem);
+  font-weight: 600;
+  text-align: left;
+  box-shadow: 0 0.75rem 1.5rem rgba(3, 18, 36, 0.38);
+}
+
+.travel-banner-choice:hover,
+.travel-banner-choice:focus-visible {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.travel-banner-choice:disabled {
+  opacity: 0.65;
+}
+
+.travel-banner-outcome {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(214, 236, 255, 0.92);
+  min-height: 1.2em;
+}
+
+.travel-banner-controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.travel-banner-continue {
+  background: var(--color-accent);
+  color: #201109;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: clamp(0.55rem, 2vw, 0.75rem) clamp(1rem, 4vw, 1.5rem);
+  font-weight: 700;
+  box-shadow: 0 0.75rem 1.5rem rgba(239, 108, 51, 0.35);
+}
+
+.travel-banner-continue:hover,
+.travel-banner-continue:focus-visible {
+  background: #f47d4b;
+}
+
+.travel-banner-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(214, 236, 255, 0.82);
+}
+
 .map-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 24rem);
@@ -535,6 +626,12 @@ legend {
   margin: 0;
   font-size: 0.78rem;
   color: rgba(226, 239, 255, 0.82);
+}
+
+.map-preview-note {
+  margin: 0 0 var(--space-2);
+  color: rgba(221, 236, 255, 0.78);
+  font-size: 0.78rem;
 }
 
 .map-preview-yields p strong {

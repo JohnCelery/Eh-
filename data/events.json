@@ -1,50 +1,453 @@
 {
   "events": [
     {
-      "id": "moose-crossing",
-      "title": "Moose on the Loose",
-      "when": ["travel"],
-      "weight": 2,
-      "requires": { "minDay": 1 },
+      "id": "ogopogo-wake",
+      "title": "Ogopogo’s Wake",
+      "hook": "arrival",
+      "rarity": "rare",
+      "cooldown": 6,
+      "summary": "Ogopogo's wake hummed across the lakefront.",
+      "requires": { "regions": ["British Columbia"] },
       "stages": [
         {
-          "text": "A towering moose meanders into the middle of the Trans-Canada, sizing up your headlights.",
+          "id": "shore",
+          "text": "Kelowna Lake shivers as Ogopogo's wake hums along the rocks.",
           "choices": [
             {
-              "id": "wait",
-              "label": "Idle patiently",
-              "outcome": "You idle in neutral and wait for nature to decide.",
-              "effects": {
-                "resources": { "gas": -1 },
-                "log": "You burn a sip of gas idling behind the moose." },
-              "roll": {
-                "chance": 0.7,
-                "success": {
-                  "outcome": "The moose takes the hint and lumbers off the shoulder.",
-                  "effects": { "log": "The moose wanders away with a frosty snort." }
+              "id": "offer",
+              "label": "Leave smoked salmon",
+              "outcome": "You scatter smoked salmon along the slick stones.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "ogopogo-calm-waters",
+                  "kind": "hazard",
+                  "amount": -0.2,
+                  "duration": 2,
+                  "label": "Calm waters soften upcoming hazards.",
+                  "message": "Calm waters rolled ahead for the next legs."
                 },
-                "failure": {
-                  "outcome": "The moose stares you down and taps the bumper.",
-                  "effects": { "resources": { "ride": -1 }, "log": "Fresh dent! The moose wins this round." }
-                }
-              }
+                { "type": "log", "message": "Left smoked salmon for Ogopogo and the lake fell quiet." }
+              ],
+              "nextStage": "afterglow"
             },
             {
-              "id": "honk",
-              "label": "Lay on the horn",
-              "outcome": "You tap the horn and hope for the best.",
-              "effects": {
-                "resources": { "snacks": -1 },
-                "log": "Everyone stress-eats maple fudge during the standoff." },
+              "id": "search",
+              "label": "Search the shore",
+              "outcome": "You follow the glow, sketching the wake's paths.",
+              "effects": [
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "hazardHints": true,
+                  "message": "Ogopogo traced gentle coves around the lake."
+                },
+                { "type": "log", "message": "Mapped Ogopogo's calm coves around the lake." }
+              ],
+              "nextStage": "afterglow"
+            },
+            {
+              "id": "drift",
+              "label": "Let the song pull you",
+              "outcome": "You ease off the pedals and let the wake tow the van.",
+              "effects": [
+                {
+                  "type": "teleport",
+                  "origin": "destination",
+                  "mode": "forward",
+                  "dayShift": 1,
+                  "message": "Ogopogo towed you ahead overnight."
+                },
+                { "type": "log", "message": "Ogopogo's wake ferried the van forward overnight." }
+              ],
+              "nextStage": "afterglow"
+            }
+          ]
+        },
+        {
+          "id": "afterglow",
+          "text": "Mist lingers as the wake circles back, inviting a parting gesture.",
+          "choices": [
+            {
+              "id": "cup",
+              "label": "Cup the lake water",
+              "outcome": "You share the chill with the crew.",
+              "effects": [
+                { "type": "resources", "changes": { "ride": 1, "snacks": 1 } },
+                { "type": "log", "message": "Ogopogo's gift steadied the crew for the next push." }
+              ]
+            },
+            {
+              "id": "chart",
+              "label": "Chart the ripples",
+              "outcome": "You mark the ripples into a neat pencil map.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "ogopogo-preview",
+                  "kind": "preview-tight",
+                  "duration": 1,
+                  "label": "Lake sense sharpened the next preview.",
+                  "message": "Lake sense sharpened the next preview."
+                },
+                { "type": "log", "message": "Ogopogo's ripples sharpened the family's map sense." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wendigo-radio",
+      "title": "Wendigo Radio",
+      "hook": "arrival",
+      "rarity": "uncommon",
+      "cooldown": 4,
+      "summary": "A wendigo broadcast whispered through the static.",
+      "requires": { "regions": ["Ontario", "Quebec", "Manitoba"] },
+      "stages": [
+        {
+          "id": "signal",
+          "text": "A rusted cabin radio hums on the dash with a hungry wendigo voice.",
+          "choices": [
+            {
+              "id": "tune",
+              "label": "Tune carefully",
+              "outcome": "You feather the dial until the howl steadies.",
+              "effects": [
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "hazardHints": true,
+                  "message": "The signal flagged calmer side roads."
+                },
+                { "type": "log", "message": "Tuned the wendigo radio and logged the safer spurs." }
+              ],
+              "nextStage": "marker"
+            },
+            {
+              "id": "overdrive",
+              "label": "Overdrive the dial",
+              "outcome": "You crank the dial past sane limits.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "wendigo-gas",
+                  "kind": "travel-gas",
+                  "amount": -1,
+                  "duration": 2,
+                  "label": "Radio deal shaved a liter off each jump.",
+                  "message": "The broadcast bartered a little gas off each jump."
+                },
+                { "type": "log", "message": "Overdrove the wendigo radio and scored a gas discount." }
+              ],
+              "nextStage": "marker"
+            },
+            {
+              "id": "ignore",
+              "label": "Ignore it",
+              "outcome": "You close the glove box on the hiss.",
+              "effects": [
+                { "type": "log", "message": "Ignored the wendigo broadcast and kept the cabin quiet." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "marker",
+          "text": "The final burst scratches coordinates across the windshield frost.",
+          "choices": [
+            {
+              "id": "pin",
+              "label": "Pin the signal",
+              "outcome": "You jot the numbers onto the paper atlas.",
+              "effects": [
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "maxHazard": 0.35,
+                  "hazardHints": true,
+                  "message": "The note revealed a gentle side route."
+                },
+                { "type": "log", "message": "Pinned the wendigo marker onto the atlas for a softer detour." }
+              ]
+            },
+            {
+              "id": "fade",
+              "label": "Let it fade",
+              "outcome": "You let the phantom signal slip away.",
+              "effects": [
+                { "type": "log", "message": "Let the wendigo broadcast fade back into the static." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hotel-beneath-snow",
+      "title": "Hotel Beneath the Snow",
+      "hook": "arrival",
+      "rarity": "rare",
+      "cooldown": 7,
+      "summary": "A buried hotel opened its glowing foyer.",
+      "requires": { "regions": ["Manitoba", "Saskatchewan", "Alberta"] },
+      "stages": [
+        {
+          "id": "lobby",
+          "text": "A hotel sunk beneath snowdrifts swings open with warm light.",
+          "choices": [
+            {
+              "id": "rest",
+              "label": "Take the beds",
+              "outcome": "Everyone collapses into quilted bunks.",
+              "effects": [
+                { "type": "resources", "changes": { "ride": 2, "snacks": 1 } },
+                { "type": "log", "message": "Rested under snowbank quilts and patched up the ride." }
+              ],
+              "nextStage": "ledger"
+            },
+            {
+              "id": "boiler",
+              "label": "Check the boiler",
+              "outcome": "You coax the roaring boiler back into rhythm.",
+              "effects": [
+                { "type": "resources", "changes": { "ride": 2 } },
+                { "type": "log", "message": "Tuned the buried boiler and tightened the chassis." }
+              ],
+              "nextStage": "ledger"
+            },
+            {
+              "id": "hall",
+              "label": "Wander the hall",
+              "outcome": "You follow endless hallways of framed voyageurs.",
+              "effects": [
+                { "type": "log", "message": "Wandered the ghostly halls beneath the snow." }
+              ],
               "roll": {
-                "chance": 0.45,
+                "chance": 0.5,
                 "success": {
-                  "outcome": "The honk startles the moose back into the bush.",
-                  "effects": { "log": "Success! The moose sprints into the spruce." }
+                  "outcome": "A freight elevator drops you near the next town.",
+                  "effects": [
+                    {
+                      "type": "teleport",
+                      "origin": "destination",
+                      "mode": "forward",
+                      "message": "The hotel elevator lifted you ahead underground."
+                    },
+                    { "type": "log", "message": "A hidden elevator jumped the van ahead under the drifts." }
+                  ]
                 },
                 "failure": {
-                  "outcome": "The horn enrages the moose.",
-                  "effects": { "resources": { "ride": -2 }, "log": "The moose wallops the hood before sauntering off." }
+                  "outcome": "You loop back to the lobby before dawn.",
+                  "effects": [
+                    { "type": "log", "message": "Lost in the snowbound halls before finding the lobby again." }
+                  ]
+                }
+              },
+              "nextStage": "ledger"
+            }
+          ]
+        },
+        {
+          "id": "ledger",
+          "text": "A frozen clerk slides the guest ledger across the counter.",
+          "choices": [
+            {
+              "id": "sign",
+              "label": "Sign the ledger",
+              "outcome": "You sign with mittened hands.",
+              "effects": [
+                { "type": "resources", "changes": { "money": 10 } },
+                { "type": "log", "message": "Signed the buried ledger and pocketed a refund." }
+              ]
+            },
+            {
+              "id": "pay",
+              "label": "Slip the clerk cash",
+              "outcome": "You slide a few crisp bills across the desk.",
+              "effects": [
+                { "type": "resources", "changes": { "money": -8 } },
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "hazardHints": true,
+                  "maxHazard": 0.4,
+                  "message": "The clerk highlighted the safest exits."
+                },
+                { "type": "log", "message": "Paid the snowbound clerk for directions to safer routes." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "voyageurs-ghost-canoe",
+      "title": "Voyageurs’ Ghost Canoe",
+      "hook": "travel",
+      "rarity": "uncommon",
+      "cooldown": 3,
+      "summary": "A glowing canoe paced the headlights.",
+      "requires": { "regions": ["Ontario", "Manitoba"] },
+      "stages": [
+        {
+          "id": "paddle",
+          "text": "A ghostly canoe glides alongside, paddlers chanting in French.",
+          "choices": [
+            {
+              "id": "pay",
+              "label": "Pay the toll",
+              "outcome": "You toss maple sugar toward the bow.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "voyageur-ward",
+                  "kind": "skip-hazard",
+                  "tick": "manual",
+                  "duration": 1,
+                  "label": "Voyageurs will block the next hazard.",
+                  "message": "The paddlers promised to block the next hazard." },
+                { "type": "log", "message": "Paid the voyageur spirits to block the next hazard." }
+              ],
+              "nextStage": "chant"
+            },
+            {
+              "id": "pace",
+              "label": "Match their pace",
+              "outcome": "You paddle the wheel in time with their strokes.",
+              "effects": [
+                { "type": "resources", "changes": { "snacks": 1 } },
+                { "type": "log", "message": "Kept pace with the voyageur canoe and boosted morale." }
+              ],
+              "nextStage": "chant"
+            },
+            {
+              "id": "peer",
+              "label": "Peer into the canoe",
+              "outcome": "You lean over to study the shimmering hull.",
+              "effects": [
+                { "type": "dayShift", "days": 1, "message": "You slept a year in a blink." },
+                { "type": "log", "message": "Peered into the ghost canoe and lost a day to dreamless sleep." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chant",
+          "text": "The paddlers beckon you to join their chant.",
+          "choices": [
+            {
+              "id": "lead",
+              "label": "Lead the refrain",
+              "outcome": "You echo their haunting refrain.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "voyageur-echo",
+                  "kind": "hazard",
+                  "amount": -0.15,
+                  "duration": 1,
+                  "label": "Voyageur chant softened upcoming hazards.",
+                  "message": "The chant softened the next hazard."
+                },
+                { "type": "log", "message": "Led the voyageurs' chant and eased the next hazard." }
+              ]
+            },
+            {
+              "id": "listen",
+              "label": "Listen for the route",
+              "outcome": "You let their harmonies map the bends ahead.",
+              "effects": [
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "hazardHints": true,
+                  "message": "The chant revealed which bends stay calm."
+                },
+                { "type": "log", "message": "Listened to the voyageurs and marked the safest bends ahead." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aurora-tollkeeper",
+      "title": "Aurora Tollkeeper",
+      "hook": "travel",
+      "rarity": "uncommon",
+      "cooldown": 4,
+      "summary": "An aurora-lit tollkeeper flagged the headlights.",
+      "requires": { "regions": ["Manitoba", "Ontario", "Saskatchewan", "Alberta", "Northwest Territories"] },
+      "stages": [
+        {
+          "id": "gate",
+          "text": "An aurora tollkeeper leans into the roadway, palm outstretched.",
+          "choices": [
+            {
+              "id": "pay",
+              "label": "Pay the toll",
+              "outcome": "You pass a thermos of cocoa and a crumpled twenty.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "aurora-ward",
+                  "kind": "hazard",
+                  "amount": -0.1,
+                  "duration": 3,
+                  "label": "Aurora blessing steadies hazards for a while.",
+                  "message": "Aurora blessing steadies hazards for a while."
+                },
+                { "type": "log", "message": "Paid the aurora tollkeeper and earned a smoother road." }
+              ]
+            },
+            {
+              "id": "argue",
+              "label": "Argue the rates",
+              "outcome": "You haggle while the lights shimmer overhead.",
+              "effects": [
+                { "type": "resources", "changes": { "snacks": -1 } },
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "hazardHints": true,
+                  "maxHazard": 0.35,
+                  "message": "The tollkeeper pointed toward gentler exits."
+                },
+                { "type": "log", "message": "Argued with the aurora tollkeeper and traded snacks for safer turns." }
+              ]
+            },
+            {
+              "id": "drive",
+              "label": "Drive through",
+              "outcome": "You edge past the spectral booth without stopping.",
+              "effects": [
+                { "type": "resources", "changes": { "ride": -1 } },
+                { "type": "log", "message": "Shouldered past the aurora tollkeeper and took a hit to the ride." }
+              ],
+              "roll": {
+                "chance": 0.3,
+                "success": {
+                  "outcome": "Aurora sparks cling to the bumper in protection.",
+                  "effects": [
+                    {
+                      "type": "addBuff",
+                      "id": "aurora-veil",
+                      "kind": "hazard",
+                      "amount": -0.05,
+                      "duration": 2,
+                      "label": "Aurora sparks cling to the chassis.",
+                      "message": "Aurora sparks cling to the chassis for a couple of hops."
+                    },
+                    { "type": "log", "message": "Aurora sparks clung to the bumper and softened the next stretch." }
+                  ]
+                },
+                "failure": {
+                  "outcome": "The tollkeeper curses the bumper with a crackle.",
+                  "effects": [
+                    { "type": "log", "message": "The aurora tollkeeper crackled at the bumper after the snub." }
+                  ]
                 }
               }
             }
@@ -53,30 +456,57 @@
       ]
     },
     {
-      "id": "truckers-kindness",
-      "title": "Friendly Convoy",
-      "when": ["travel"],
-      "weight": 1,
-      "requires": { "minDay": 2 },
+      "id": "time-thunder-bay",
+      "title": "Time in Thunder Bay",
+      "hook": "travel",
+      "rarity": "uncommon",
+      "cooldown": 3,
+      "summary": "Time warped gently around Thunder Bay.",
+      "requires": { "regions": ["Ontario"] },
       "stages": [
         {
-          "text": "A pair of prairie truckers wave you into a rest stop, offering thermoses and tales of black ice ahead.",
+          "id": "bend",
+          "text": "Thunder Bay's skyline ripples; time itself offers a handshake.",
           "choices": [
             {
-              "id": "share",
-              "label": "Share stories and supplies",
-              "outcome": "You swap road stories and recipes for bannock.",
-              "effects": {
-                "resources": { "snacks": 2 },
-                "log": "The truckers restock your snack bin with jerky and Nanaimo bars." }
+              "id": "go",
+              "label": "Go with it",
+              "outcome": "You let the hours flow backward around the van.",
+              "effects": [
+                { "type": "dayShift", "days": -1, "message": "Time credited a day back." },
+                { "type": "resources", "changes": { "gas": 1 } },
+                { "type": "log", "message": "Let Thunder Bay bend time and gained a day and a splash of gas." }
+              ]
             },
             {
-              "id": "buy",
-              "label": "Buy extra gas cans",
-              "outcome": "You trade some cash for a tidy jerrycan.",
-              "effects": {
-                "resources": { "gas": 2, "money": -10 },
-                "log": "A spare jerrycan sloshes in the trunk." }
+              "id": "resist",
+              "label": "Resist the pull",
+              "outcome": "You grip the wheel until the ripple passes.",
+              "effects": [
+                { "type": "log", "message": "Resisted Thunder Bay's time ripple and kept the schedule steady." }
+              ]
+            },
+            {
+              "id": "exploit",
+              "label": "Exploit the loop",
+              "outcome": "You study every exit while the loop holds.",
+              "effects": [
+                {
+                  "type": "addBuff",
+                  "id": "thunderbay-preview",
+                  "kind": "preview-tight",
+                  "duration": 1,
+                  "label": "Time loop sharpened the next preview.",
+                  "message": "Time loop sharpened the next preview."
+                },
+                {
+                  "type": "revealNeighbors",
+                  "target": "destination",
+                  "hazardHints": true,
+                  "message": "You memorized every neighboring route."
+                },
+                { "type": "log", "message": "Exploited the Thunder Bay loop and charted every nearby route." }
+              ]
             }
           ]
         }
