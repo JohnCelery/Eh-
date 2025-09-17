@@ -1346,8 +1346,11 @@ export default class MapScreen {
     }
   }
 
-  _hidePreview() {
+  _hidePreview(force = false) {
     if (!this.previewCard) {
+      return;
+    }
+    if (!force && this.previewCard.dataset.mode === 'confirm') {
       return;
     }
     this.previewCard.dataset.visible = 'false';
@@ -1370,12 +1373,12 @@ export default class MapScreen {
     if (this.activePreviewTarget !== nodeId) {
       return;
     }
-    this._hidePreview();
+    this._hidePreview(true);
   }
 
   _dismissTravelPreview() {
     const targetId = this.pendingTravelNodeId;
-    this._hidePreview();
+    this._hidePreview(true);
     if (!targetId || !this.mapArea) {
       return;
     }
@@ -1408,7 +1411,7 @@ export default class MapScreen {
 
     const result = this.gameState.travelTo(nodeId);
 
-    this._hidePreview();
+    this._hidePreview(true);
     this._refresh();
 
     const arrivalContext = {
