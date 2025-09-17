@@ -37,10 +37,16 @@ export default class MapScreen {
 
     this.previewCard = null;
     this.previewTitle = null;
+    this.previewSubtitle = null;
     this.previewStats = null;
     this.previewYields = null;
+    this.previewActions = null;
+    this.previewConfirmButton = null;
+    this.previewDismissButton = null;
     this.actionFeedback = null;
     this.activePreviewTarget = null;
+    this.pendingTravelNodeId = null;
+    this.suppressPeekTarget = null;
 
     this.mapSidebar = null;
     this.mobileControls = null;
@@ -152,16 +158,43 @@ export default class MapScreen {
     this.previewCard.className = 'map-preview';
     this.previewCard.setAttribute('aria-live', 'polite');
     this.previewCard.dataset.visible = 'false';
+    this.previewCard.dataset.mode = 'peek';
     const previewHeading = document.createElement('h4');
     previewHeading.className = 'map-preview-title';
+    const previewSubtitle = document.createElement('p');
+    previewSubtitle.className = 'map-preview-subtitle';
     const previewStats = document.createElement('dl');
     previewStats.className = 'map-preview-stats';
     const previewYields = document.createElement('div');
     previewYields.className = 'map-preview-yields';
-    this.previewCard.append(previewHeading, previewStats, previewYields);
+    const previewActions = document.createElement('div');
+    previewActions.className = 'map-preview-actions';
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.className = 'map-preview-confirm';
+    confirmButton.textContent = 'Travel';
+    confirmButton.disabled = true;
+    confirmButton.addEventListener('click', () => {
+      if (this.pendingTravelNodeId) {
+        this._confirmTravel(this.pendingTravelNodeId);
+      }
+    });
+    const dismissButton = document.createElement('button');
+    dismissButton.type = 'button';
+    dismissButton.className = 'map-preview-dismiss';
+    dismissButton.textContent = 'Cancel';
+    dismissButton.addEventListener('click', () => {
+      this._dismissTravelPreview();
+    });
+    previewActions.append(confirmButton, dismissButton);
+    this.previewCard.append(previewHeading, previewSubtitle, previewStats, previewYields, previewActions);
     this.previewTitle = previewHeading;
+    this.previewSubtitle = previewSubtitle;
     this.previewStats = previewStats;
     this.previewYields = previewYields;
+    this.previewActions = previewActions;
+    this.previewConfirmButton = confirmButton;
+    this.previewDismissButton = dismissButton;
 
     this.stageElement.append(instructions, srConnections, this.mapCanvas, this.mapArea, this.previewCard);
 
@@ -319,15 +352,33 @@ export default class MapScreen {
     if (!this.mapArea) {
       return;
     }
-    const existingButtons = this.mapArea.querySelectorAll('.map-node');
-    existingButtons.forEach((node) => node.remove());
+    this.mapArea.innerHTML = '';
 
     this.graph = this.gameState.getWorldGraph();
-    if (!this.graph) {
+    if (!this.graph || !this.currentSnapshot) {
       return;
     }
 
-    this.graph.nodes.forEach((node) => {
+    const nodesToRender = [];
+    const currentId = this.currentSnapshot.location;
+    const currentNode = this.graph.nodes.get(currentId);
+    if (currentNode) {
+      nodesToRender.push(currentNode);
+    }
+    if (Array.isArray(this.activeConnections)) {
+      this.activeConnections.forEach((entry) => {
+        if (entry?.node) {
+          nodesToRender.push(entry.node);
+        }
+      });
+    }
+
+    const rendered = new Set();
+    nodesToRender.forEach((node) => {
+      if (!node || rendered.has(node.id)) {
+        return;
+      }
+      rendered.add(node.id);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'map-node';
@@ -354,10 +405,10 @@ export default class MapScreen {
         this._maybePreviewNode(node.id);
       });
       button.addEventListener('mouseleave', () => {
-        this._hidePreview();
+        this._handleNodePointerExit(node.id);
       });
       button.addEventListener('blur', () => {
-        this._hidePreview();
+        this._handleNodePointerExit(node.id);
       });
       this.mapArea.append(button);
     });
@@ -397,6 +448,7 @@ export default class MapScreen {
 
     const ctx = this.mapContext;
     const { width, height } = this.stageSize;
+    const visibleNodes = this._getVisibleNodeIds();
     ctx.clearRect(0, 0, width, height);
 
     const background = ctx.createLinearGradient(0, 0, width, height);
@@ -449,6 +501,9 @@ export default class MapScreen {
     ctx.globalAlpha = 0.55;
     ctx.lineWidth = Math.max(1.6, width * 0.008);
     this.graph.edges.forEach((edge) => {
+      if (!visibleNodes.has(edge.from) || !visibleNodes.has(edge.to)) {
+        return;
+      }
       const key = this._normalizedEdgeKey(edge.from, edge.to);
       if (drawn.has(key)) {
         return;
@@ -485,6 +540,9 @@ export default class MapScreen {
       if (!highlightEdges.has(forwardKey) && !highlightEdges.has(backwardKey)) {
         return;
       }
+      if (!visibleNodes.has(edge.from) || !visibleNodes.has(edge.to)) {
+        return;
+      }
       highlighted.add(key);
       const from = this.graph.nodes.get(edge.from);
       const to = this.graph.nodes.get(edge.to);
@@ -506,6 +564,9 @@ export default class MapScreen {
 
     ctx.save();
     this.graph.nodes.forEach((node) => {
+      if (!visibleNodes.has(node.id)) {
+        return;
+      }
       const point = this._toCanvasCoords(node.coords);
       const isCurrent = this.currentSnapshot?.location === node.id;
       const isReachable = this.activeConnections?.some((entry) => entry.node.id === node.id);
@@ -541,6 +602,42 @@ export default class MapScreen {
 
   _normalizedEdgeKey(from, to) {
     return [from, to].sort().join('::');
+  }
+
+  _getVisibleNodeIds() {
+    const visible = new Set();
+    if (!this.currentSnapshot) {
+      return visible;
+    }
+    const { location, visited } = this.currentSnapshot;
+    if (Array.isArray(visited)) {
+      visited.forEach((nodeId) => {
+        if (nodeId) {
+          visible.add(nodeId);
+        }
+      });
+    }
+    if (location) {
+      visible.add(location);
+    }
+    if (Array.isArray(this.activeConnections)) {
+      this.activeConnections.forEach((entry) => {
+        if (entry?.node?.id) {
+          visible.add(entry.node.id);
+        }
+      });
+    }
+    return visible;
+  }
+
+  _limitConnections(connections = []) {
+    if (!Array.isArray(connections)) {
+      return [];
+    }
+    if (connections.length <= 4) {
+      return connections;
+    }
+    return connections.slice(0, 4);
   }
 
   _toCanvasCoords(coords = { x: 0, y: 0 }) {
@@ -585,6 +682,8 @@ export default class MapScreen {
       return;
     }
     this.currentSnapshot = snapshot;
+    const allConnections = getConnections(this.graph, snapshot.location);
+    this.activeConnections = this._limitConnections(allConnections);
     this._renderNodes();
     this._updateResourceBoard(snapshot);
     this._updateNodes(snapshot);
@@ -640,18 +739,19 @@ export default class MapScreen {
 
   _updateNodes(snapshot) {
     const currentId = snapshot.location;
-    const activeConnections = getConnections(this.graph, currentId);
-    const activeIds = new Set([currentId, ...activeConnections.map((entry) => entry.node.id)]);
+    const activeConnections = Array.isArray(this.activeConnections) ? this.activeConnections : [];
+    const reachableIds = new Set(activeConnections.map((entry) => entry.node.id));
+    const activeIds = new Set([currentId, ...reachableIds]);
     const visitedIds = new Set(Array.isArray(snapshot.visited) ? snapshot.visited : []);
-    this.activeConnections = activeConnections;
 
     this.mapArea.querySelectorAll('.map-node').forEach((button) => {
       const nodeId = button.dataset.nodeId;
       const isCurrent = nodeId === currentId;
       button.dataset.current = String(isCurrent);
       const isActive = activeIds.has(nodeId);
+      const isReachable = reachableIds.has(nodeId);
       button.dataset.active = String(isActive);
-      button.dataset.reachable = String(isActive && !isCurrent);
+      button.dataset.reachable = String(isReachable && !isCurrent);
       button.dataset.visited = String(visitedIds.has(nodeId));
       button.disabled = !isActive;
       if (isCurrent) {
@@ -1019,7 +1119,7 @@ export default class MapScreen {
   }
 
   _handleNodeClick(nodeId) {
-    const snapshot = this.gameState.getSnapshot();
+    const snapshot = this.currentSnapshot || this.gameState.getSnapshot();
     if (!snapshot) {
       return;
     }
@@ -1027,30 +1127,20 @@ export default class MapScreen {
     if (currentId === nodeId) {
       return;
     }
-    const connections = getConnections(this.graph, currentId);
-    const target = connections.find((entry) => entry.node.id === nodeId);
-    if (!target) {
+    if (!Array.isArray(this.activeConnections) || !this.activeConnections.some((entry) => entry.node.id === nodeId)) {
       return;
     }
-
-    const result = this.gameState.travelTo(nodeId);
-
-    this._hidePreview();
-    this._refresh();
-
-    if (result?.depleted?.length) {
-      this.eventModal.showOutcome(`Resources running low: ${result.depleted.join(', ')}`);
+    const estimate = this.gameState.getTravelEstimate(currentId, nodeId);
+    if (!estimate) {
+      return;
     }
-
-    const event = this.eventEngine.maybeTrigger('travel', this.gameState);
-    if (event) {
-      this.gameState.appendLog(`Encountered: ${event.title || 'an event'}.`);
-      this.eventModal.open(event, {
-        onChoice: (choice) => this._resolveEventChoice(event, choice),
-        onClose: () => {
-          this._refresh();
-        }
-      });
+    if (this.previewCard?.dataset.mode === 'confirm' && this.pendingTravelNodeId === nodeId) {
+      this._confirmTravel(nodeId);
+      return;
+    }
+    this._showPreview(estimate, { mode: 'confirm' });
+    if (this.previewConfirmButton) {
+      this.previewConfirmButton.focus({ preventScroll: true });
     }
   }
 
@@ -1106,7 +1196,15 @@ export default class MapScreen {
 
   _maybePreviewNode(nodeId) {
     const snapshot = this.currentSnapshot;
+    if (this.suppressPeekTarget === nodeId) {
+      this.suppressPeekTarget = null;
+      return;
+    }
     if (!snapshot || snapshot.location === nodeId) {
+      this._hidePreview();
+      return;
+    }
+    if (!Array.isArray(this.activeConnections) || !this.activeConnections.some((entry) => entry.node.id === nodeId)) {
       this._hidePreview();
       return;
     }
@@ -1115,17 +1213,35 @@ export default class MapScreen {
       this._hidePreview();
       return;
     }
-    this._showPreview(estimate);
+    this._showPreview(estimate, { mode: 'peek' });
   }
 
-  _showPreview(estimate) {
+  _showPreview(estimate, options = {}) {
     if (!this.previewCard) {
       return;
     }
+    const mode = options.mode || 'peek';
     this.previewCard.dataset.visible = 'true';
+    this.previewCard.dataset.mode = mode;
     this.activePreviewTarget = estimate.to.id;
+    if (mode === 'confirm') {
+      this.pendingTravelNodeId = estimate.to.id;
+    } else {
+      this.pendingTravelNodeId = null;
+    }
     if (this.previewTitle) {
       this.previewTitle.textContent = estimate.to.name;
+    }
+    if (this.previewSubtitle) {
+      const parts = [];
+      if (estimate.to.kind) {
+        parts.push(estimate.to.kind);
+      }
+      if (estimate.to.region) {
+        parts.push(estimate.to.region);
+      }
+      this.previewSubtitle.textContent = parts.join(' • ');
+      this.previewSubtitle.hidden = parts.length === 0;
     }
     if (this.previewStats) {
       this.previewStats.innerHTML = '';
@@ -1190,6 +1306,15 @@ export default class MapScreen {
         }
       }
     }
+    if (this.previewConfirmButton) {
+      const label = `Travel to ${estimate.to.name}`;
+      this.previewConfirmButton.textContent = `${label}`;
+      this.previewConfirmButton.setAttribute('aria-label', `${label} for ${estimate.gasCost} gas`);
+      this.previewConfirmButton.disabled = mode !== 'confirm';
+    }
+    if (this.previewDismissButton) {
+      this.previewDismissButton.disabled = mode !== 'confirm';
+    }
   }
 
   _hidePreview() {
@@ -1197,7 +1322,77 @@ export default class MapScreen {
       return;
     }
     this.previewCard.dataset.visible = 'false';
+    this.previewCard.dataset.mode = 'peek';
     this.activePreviewTarget = null;
+    this.pendingTravelNodeId = null;
+    this.suppressPeekTarget = null;
+    if (this.previewConfirmButton) {
+      this.previewConfirmButton.disabled = true;
+    }
+    if (this.previewDismissButton) {
+      this.previewDismissButton.disabled = true;
+    }
+  }
+
+  _handleNodePointerExit(nodeId) {
+    if (this.previewCard?.dataset.mode === 'confirm') {
+      return;
+    }
+    if (this.activePreviewTarget !== nodeId) {
+      return;
+    }
+    this._hidePreview();
+  }
+
+  _dismissTravelPreview() {
+    const targetId = this.pendingTravelNodeId;
+    this._hidePreview();
+    if (!targetId || !this.mapArea) {
+      return;
+    }
+    this.suppressPeekTarget = targetId;
+    const button = this.mapArea.querySelector(`.map-node[data-node-id="${targetId}"]`);
+    if (button && typeof button.focus === 'function') {
+      button.focus({ preventScroll: true });
+    }
+  }
+
+  _confirmTravel(nodeId) {
+    const snapshot = this.gameState.getSnapshot();
+    if (!snapshot) {
+      return;
+    }
+    const currentId = snapshot.location;
+    if (currentId === nodeId) {
+      return;
+    }
+    const connections = Array.isArray(this.activeConnections) && this.activeConnections.length
+      ? this.activeConnections
+      : getConnections(this.graph, currentId);
+    const target = connections.find((entry) => entry.node.id === nodeId);
+    if (!target) {
+      return;
+    }
+
+    const result = this.gameState.travelTo(nodeId);
+
+    this._hidePreview();
+    this._refresh();
+
+    if (result?.depleted?.length) {
+      this.eventModal.showOutcome(`Resources running low: ${result.depleted.join(', ')}`);
+    }
+
+    const event = this.eventEngine.maybeTrigger('travel', this.gameState);
+    if (event) {
+      this.gameState.appendLog(`Encountered: ${event.title || 'an event'}.`);
+      this.eventModal.open(event, {
+        onChoice: (choice) => this._resolveEventChoice(event, choice),
+        onClose: () => {
+          this._refresh();
+        }
+      });
+    }
   }
 
   _resolveEventChoice(event, choice) {

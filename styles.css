@@ -542,6 +542,54 @@ legend {
   font-weight: 600;
 }
 
+.map-preview-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(221, 236, 255, 0.72);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.map-preview-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.map-preview[data-mode="peek"] .map-preview-actions {
+  display: none;
+}
+
+.map-preview-confirm,
+.map-preview-dismiss {
+  flex: 1;
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.map-preview-confirm {
+  background: linear-gradient(135deg, rgba(11, 109, 202, 0.95), rgba(15, 125, 224, 0.9));
+}
+
+.map-preview-confirm:disabled {
+  background: rgba(144, 195, 255, 0.28);
+  color: rgba(28, 40, 52, 0.6);
+  box-shadow: none;
+}
+
+.map-preview-dismiss {
+  background: rgba(11, 26, 52, 0.55);
+  color: rgba(226, 239, 255, 0.85);
+  border: 1px solid rgba(144, 195, 255, 0.35);
+  box-shadow: none;
+}
+
+.map-preview-dismiss:hover,
+.map-preview-dismiss:focus-visible {
+  background: rgba(18, 42, 78, 0.75);
+}
+
 .map-location-conditions {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
