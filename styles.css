@@ -129,6 +129,18 @@ body.map-mode .site-footer {
   display: none;
 }
 
+body.title-mode main#app {
+  padding: 0;
+  width: 100vw;
+  height: 100dvh;
+  align-items: stretch;
+}
+
+body.title-mode .site-header,
+body.title-mode .site-footer {
+  display: none;
+}
+
 main#app {
   flex: 1;
   padding: var(--space-4);
@@ -146,6 +158,51 @@ main#app {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.title-screen {
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) max(env(safe-area-inset-bottom), 1rem) env(safe-area-inset-left);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.title-hero {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.title-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.title-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.15) 45%, transparent 70%);
+  pointer-events: none;
+}
+
+.title-hero-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, rgba(3, 14, 30, 0.8), rgba(13, 60, 112, 0.65) 55%, rgba(239, 108, 51, 0.45));
+}
+
+.title-cta {
+  display: grid;
+  gap: var(--space-4);
+  padding: 0 var(--space-4) max(env(safe-area-inset-bottom), 1rem) var(--space-4);
 }
 
 .screen-footer {
@@ -182,6 +239,7 @@ button {
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
   box-shadow: 0 0.75rem 1.5rem rgba(11, 109, 202, 0.22);
+  min-height: 44px;
 }
 
 button:hover,
@@ -248,6 +306,20 @@ legend {
   gap: var(--space-2);
 }
 
+.seed-row {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.seed-input-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.seed-row button {
+  width: 100%;
+}
+
 .setup-form {
   display: grid;
   gap: var(--space-4);
@@ -259,9 +331,13 @@ legend {
   background: var(--color-surface-alt);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  padding: var(--space-3);
+  padding: var(--space-4);
   cursor: pointer;
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+label.vehicle-card {
+  min-height: 120px;
 }
 
 .vehicle-card:hover,
@@ -283,8 +359,8 @@ legend {
 }
 
 .vehicle-card input[type='radio'] {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   margin: 0;
   flex: 0 0 auto;
   accent-color: var(--color-primary);
@@ -297,6 +373,10 @@ legend {
 .vehicle-card p {
   margin: 0;
   color: var(--color-text-muted);
+}
+
+.vehicle-card .inline-chips {
+  flex-wrap: wrap;
 }
 
 .vehicle-card-media {
@@ -326,6 +406,7 @@ legend {
 .vehicle-stats {
   font-weight: 600;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 @media (min-width: 720px) {
@@ -356,6 +437,18 @@ legend {
   }
 }
 
+@media (min-width: 640px) {
+  .seed-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--space-3);
+  }
+
+  .seed-row button {
+    width: auto;
+  }
+}
+
 .inline-chips {
   display: flex;
   flex-wrap: wrap;
@@ -374,13 +467,42 @@ legend {
 .action-buttons {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+}
+
+.setup-screen {
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+
+.brand-lockup {
+  display: block;
+  max-width: 12rem;
+  width: 100%;
+  margin: 0 auto var(--space-4);
+}
+
+.setup-screen .brand-lockup {
+  filter: drop-shadow(0 0.5rem 1.25rem rgba(11, 109, 202, 0.18));
 }
 
 @media (min-width: 640px) {
   .action-buttons {
     flex-direction: row;
     justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .vehicle-card {
+    transition: none;
+  }
+
+  button:hover,
+  button:focus-visible,
+  .vehicle-card:hover,
+  .vehicle-card:focus-within {
+    transform: none;
   }
 }
 
