@@ -173,6 +173,48 @@
       "w": 1536,
       "h": 1024,
       "label": "Minivan illustration"
+    },
+    "ui.hero.portrait": {
+      "src": "assets/img/ui/title_hero_portrait.png",
+      "w": 1440,
+      "h": 2560,
+      "label": "Family van hero art (portrait)"
+    },
+    "ui.hero.landscape": {
+      "src": "assets/img/ui/title_hero_landscape.png",
+      "w": 1920,
+      "h": 1080,
+      "label": "Family van hero art (landscape)"
+    },
+    "ui.brand.lockup": {
+      "src": "assets/img/ui/brand_lockup.png",
+      "w": 1024,
+      "h": 256,
+      "label": "Canadian Trail logotype"
+    },
+    "ui.icon.start": {
+      "src": "assets/img/ui/icon_start.png",
+      "w": 128,
+      "h": 128,
+      "label": "Start adventure icon"
+    },
+    "ui.icon.continue": {
+      "src": "assets/img/ui/icon_continue.png",
+      "w": 128,
+      "h": 128,
+      "label": "Continue adventure icon"
+    },
+    "ui.setup.banner": {
+      "src": "assets/img/ui/setup_banner.png",
+      "w": 2048,
+      "h": 512,
+      "label": "Setup screen banner"
+    },
+    "ui.badge.deterministic": {
+      "src": "assets/img/ui/badge_deterministic.png",
+      "w": 96,
+      "h": 96,
+      "label": "Deterministic RNG badge"
     }
   }
 }
