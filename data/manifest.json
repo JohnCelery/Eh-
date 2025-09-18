@@ -1,35 +1,178 @@
 {
   "images": {
-    "scenes.map_bg": { "src": "assets/img/scene/map_bg.png", "w": 1920, "h": 1080, "label": "Map BG" },
-    "scenes.map_layer1": { "src": "assets/img/scene/map_layer1.png", "w": 1920, "h": 1080, "label": "Parallax Near" },
-    "scenes.map_layer2": { "src": "assets/img/scene/map_layer2.png", "w": 1920, "h": 1080, "label": "Parallax Far" },
-
-    "sprites.vehicle.minivan": { "src": "assets/img/sprites/vehicle_minivan.png", "w": 384, "h": 192, "label": "Minivan" },
-    "sprites.vehicle.pickup": { "src": "assets/img/sprites/vehicle_pickup.png", "w": 384, "h": 192, "label": "Pickup" },
-    "sprites.vehicle.school_bus": { "src": "assets/img/sprites/vehicle_school_bus.png", "w": 448, "h": 208, "label": "School Bus" },
-
-     "sprites.portrait.merri_ellen": { "src": "assets/img/sprites/portrait_merri_ellen.png", "w": 96, "h": 96, "label": "Merri-Ellen" },
-  "sprites.portrait.mike":        { "src": "assets/img/sprites/portrait_mike.png",        "w": 96, "h": 96, "label": "Mike" },
-  "sprites.portrait.ros":         { "src": "assets/img/sprites/portrait_ros.png",         "w": 96, "h": 96, "label": "Ros (9)" },
-  "sprites.portrait.jess":        { "src": "assets/img/sprites/portrait_jess.png",        "w": 96, "h": 96, "label": "Jess (6)" },
-  "sprites.portrait.martha":      { "src": "assets/img/sprites/portrait_martha.png",      "w": 96, "h": 96, "label": "Martha (3)" },
-  "sprites.portrait.rusty":       { "src": "assets/img/sprites/portrait_rusty.png",       "w": 96, "h": 96, "label": "Rusty (0)" },
-
-    "sprites.node.town": { "src": "assets/img/sprites/node_town.png", "w": 64, "h": 64, "label": "Town" },
-    "sprites.node.gas": { "src": "assets/img/sprites/node_gas.png", "w": 64, "h": 64, "label": "Gas" },
-    "sprites.node.forest": { "src": "assets/img/sprites/node_forest.png", "w": 64, "h": 64, "label": "Forest" },
-    "sprites.node.mechanic": { "src": "assets/img/sprites/node_mechanic.png", "w": 64, "h": 64, "label": "Mechanic" },
-    "sprites.node.ferry": { "src": "assets/img/sprites/node_ferry.png", "w": 64, "h": 64, "label": "Ferry" },
-    "sprites.node.vista": { "src": "assets/img/sprites/node_vista.png", "w": 64, "h": 64, "label": "Vista" },
-    "sprites.node.serviceRoad": { "src": "assets/img/sprites/node_service_road.png", "w": 64, "h": 64, "label": "Service Road" },
-
-    "sprites.fx.select_ring": { "src": "assets/img/sprites/fx_select_ring.png", "w": 128, "h": 128, "label": "Select Ring" },
-    "sprites.fx.geese": { "src": "assets/img/sprites/fx_geese.png", "w": 256, "h": 128, "label": "Geese" },
-
-    "ui.icon.gas": { "src": "assets/img/ui/icon_gas.png", "w": 48, "h": 48, "label": "Gas" },
-    "ui.icon.snacks": { "src": "assets/img/ui/icon_snacks.png", "w": 48, "h": 48, "label": "Snacks" },
-    "ui.icon.ride": { "src": "assets/img/ui/icon_ride.png", "w": 48, "h": 48, "label": "Ride" },
-    "ui.icon.money": { "src": "assets/img/ui/icon_money.png", "w": 48, "h": 48, "label": "Money" },
-    "ui.icon.day": { "src": "assets/img/ui/icon_day.png", "w": 48, "h": 48, "label": "Day" }
+    "scenes.map_bg": {
+      "src": "assets/img/scene/map_bg.png",
+      "w": 1920,
+      "h": 1080,
+      "label": "Map BG"
+    },
+    "scenes.map_layer1": {
+      "src": "assets/img/scene/map_layer1.png",
+      "w": 1920,
+      "h": 1080,
+      "label": "Parallax Near"
+    },
+    "scenes.map_layer2": {
+      "src": "assets/img/scene/map_layer2.png",
+      "w": 1920,
+      "h": 1080,
+      "label": "Parallax Far"
+    },
+    "sprites.vehicle.minivan": {
+      "src": "assets/img/sprites/vehicle_minivan.png",
+      "w": 384,
+      "h": 192,
+      "label": "Minivan"
+    },
+    "sprites.vehicle.pickup": {
+      "src": "assets/img/sprites/vehicle_pickup.png",
+      "w": 384,
+      "h": 192,
+      "label": "Pickup"
+    },
+    "sprites.vehicle.school_bus": {
+      "src": "assets/img/sprites/vehicle_school_bus.png",
+      "w": 448,
+      "h": 208,
+      "label": "School Bus"
+    },
+    "sprites.portrait.merri_ellen": {
+      "src": "assets/img/sprites/portrait_merri_ellen.png",
+      "w": 96,
+      "h": 96,
+      "label": "Merri-Ellen"
+    },
+    "sprites.portrait.mike": {
+      "src": "assets/img/sprites/portrait_mike.png",
+      "w": 96,
+      "h": 96,
+      "label": "Mike"
+    },
+    "sprites.portrait.ros": {
+      "src": "assets/img/sprites/portrait_ros.png",
+      "w": 96,
+      "h": 96,
+      "label": "Ros (9)"
+    },
+    "sprites.portrait.jess": {
+      "src": "assets/img/sprites/portrait_jess.png",
+      "w": 96,
+      "h": 96,
+      "label": "Jess (6)"
+    },
+    "sprites.portrait.martha": {
+      "src": "assets/img/sprites/portrait_martha.png",
+      "w": 96,
+      "h": 96,
+      "label": "Martha (3)"
+    },
+    "sprites.portrait.rusty": {
+      "src": "assets/img/sprites/portrait_rusty.png",
+      "w": 96,
+      "h": 96,
+      "label": "Rusty (0)"
+    },
+    "sprites.node.town": {
+      "src": "assets/img/sprites/node_town.png",
+      "w": 64,
+      "h": 64,
+      "label": "Town"
+    },
+    "sprites.node.gas": {
+      "src": "assets/img/sprites/node_gas.png",
+      "w": 64,
+      "h": 64,
+      "label": "Gas"
+    },
+    "sprites.node.forest": {
+      "src": "assets/img/sprites/node_forest.png",
+      "w": 64,
+      "h": 64,
+      "label": "Forest"
+    },
+    "sprites.node.mechanic": {
+      "src": "assets/img/sprites/node_mechanic.png",
+      "w": 64,
+      "h": 64,
+      "label": "Mechanic"
+    },
+    "sprites.node.ferry": {
+      "src": "assets/img/sprites/node_ferry.png",
+      "w": 64,
+      "h": 64,
+      "label": "Ferry"
+    },
+    "sprites.node.vista": {
+      "src": "assets/img/sprites/node_vista.png",
+      "w": 64,
+      "h": 64,
+      "label": "Vista"
+    },
+    "sprites.node.serviceRoad": {
+      "src": "assets/img/sprites/node_service_road.png",
+      "w": 64,
+      "h": 64,
+      "label": "Service Road"
+    },
+    "sprites.fx.select_ring": {
+      "src": "assets/img/sprites/fx_select_ring.png",
+      "w": 128,
+      "h": 128,
+      "label": "Select Ring"
+    },
+    "sprites.fx.geese": {
+      "src": "assets/img/sprites/fx_geese.png",
+      "w": 256,
+      "h": 128,
+      "label": "Geese"
+    },
+    "ui.icon.gas": {
+      "src": "assets/img/ui/icon_gas.png",
+      "w": 48,
+      "h": 48,
+      "label": "Gas"
+    },
+    "ui.icon.snacks": {
+      "src": "assets/img/ui/icon_snacks.png",
+      "w": 48,
+      "h": 48,
+      "label": "Snacks"
+    },
+    "ui.icon.ride": {
+      "src": "assets/img/ui/icon_ride.png",
+      "w": 48,
+      "h": 48,
+      "label": "Ride"
+    },
+    "ui.icon.money": {
+      "src": "assets/img/ui/icon_money.png",
+      "w": 48,
+      "h": 48,
+      "label": "Money"
+    },
+    "ui.icon.day": {
+      "src": "assets/img/ui/icon_day.png",
+      "w": 48,
+      "h": 48,
+      "label": "Day"
+    },
+    "ui.vehicleCard.schoolBus": {
+      "src": "assets/img/ui/vehicle_school_bus_card.png",
+      "w": 1536,
+      "h": 1024,
+      "label": "School bus illustration"
+    },
+    "ui.vehicleCard.pickup": {
+      "src": "assets/img/ui/vehicle_pickup_card.png",
+      "w": 1536,
+      "h": 1024,
+      "label": "Pickup truck illustration"
+    },
+    "ui.vehicleCard.minivan": {
+      "src": "assets/img/ui/vehicle_minivan_card.png",
+      "w": 1536,
+      "h": 1024,
+      "label": "Minivan illustration"
+    }
   }
 }

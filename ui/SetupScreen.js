@@ -1,3 +1,4 @@
+import { assets } from '../systems/assets.js';
 import { VEHICLES, DEFAULT_PARTY } from '../systems/state.js';
 
 const FAMILY_NAMES = DEFAULT_PARTY.map((member) => member.name);
@@ -20,6 +21,7 @@ export default class SetupScreen {
   bind() {}
 
   async render() {
+    await assets.load();
     const section = document.createElement('section');
     section.className = 'screen setup-screen';
     section.setAttribute('aria-labelledby', 'setup-screen-heading');
@@ -37,19 +39,20 @@ export default class SetupScreen {
     form.noValidate = true;
 
     const vehicleFieldset = document.createElement('fieldset');
+    vehicleFieldset.className = 'vehicle-options';
     vehicleFieldset.innerHTML = '<legend>Choose your ride</legend>';
+
+    const vehicleImageKeys = {
+      minivan: 'ui.vehicleCard.minivan',
+      pickup: 'ui.vehicleCard.pickup',
+      schoolbus: 'ui.vehicleCard.schoolBus'
+    };
 
     VEHICLES.forEach((vehicle, index) => {
       const id = `vehicle-${vehicle.id}`;
       const wrapper = document.createElement('label');
       wrapper.setAttribute('for', id);
       wrapper.className = 'vehicle-card';
-      wrapper.style.display = 'block';
-      wrapper.style.padding = 'var(--space-3)';
-      wrapper.style.border = '1px solid var(--color-border)';
-      wrapper.style.borderRadius = 'var(--radius-md)';
-      wrapper.style.marginBottom = 'var(--space-3)';
-      wrapper.style.cursor = 'pointer';
 
       const radio = document.createElement('input');
       radio.type = 'radio';
@@ -57,16 +60,43 @@ export default class SetupScreen {
       radio.id = id;
       radio.value = vehicle.id;
       radio.required = true;
-      radio.style.marginRight = 'var(--space-3)';
       if (index === 0) {
         radio.checked = true;
       }
 
+      const media = document.createElement('div');
+      media.className = 'vehicle-card-media';
+      const assetKey = vehicleImageKeys[vehicle.id];
+      const asset = assetKey ? assets.get(assetKey) : null;
+      if (asset?.src) {
+        const img = document.createElement('img');
+        img.src = asset.src;
+        img.alt = asset.label || `${vehicle.name} illustration`;
+        img.loading = 'lazy';
+        media.append(img);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'vehicle-card-placeholder';
+        placeholder.textContent = vehicle.name;
+        media.append(placeholder);
+      }
+
+      const content = document.createElement('div');
+      content.className = 'vehicle-card-body';
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'vehicle-card-header';
+      headerRow.append(radio);
+
       const title = document.createElement('strong');
       title.textContent = vehicle.name;
+      headerRow.append(title);
+
+      content.append(headerRow);
 
       const desc = document.createElement('p');
       desc.textContent = vehicle.description;
+      content.append(desc);
 
       const chips = document.createElement('div');
       chips.className = 'inline-chips';
@@ -75,12 +105,14 @@ export default class SetupScreen {
         span.textContent = trait;
         chips.append(span);
       });
+      content.append(chips);
 
       const stats = document.createElement('p');
       stats.className = 'vehicle-stats';
       stats.textContent = `Gas ${vehicle.stats.gas}, Snacks ${vehicle.stats.snacks}, Ride ${vehicle.stats.ride}, Cash $${vehicle.stats.money}`;
+      content.append(stats);
 
-      wrapper.append(radio, title, desc, chips, stats);
+      wrapper.append(media, content);
       vehicleFieldset.append(wrapper);
     });
 

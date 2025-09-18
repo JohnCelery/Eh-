@@ -36,7 +36,13 @@ function createPlaceholder(label) {
 
 async function resolveImage(entry) {
   const label = entry.label || entry.key;
-  const url = new URL(entry.path, import.meta.url);
+  const sourcePath = entry.path || entry.src;
+  if (!sourcePath) {
+    console.warn('Asset entry missing path/src', entry);
+    return createPlaceholder(label || 'asset');
+  }
+  const base = new URL('../', import.meta.url);
+  const url = new URL(sourcePath, base);
   try {
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) {
@@ -64,17 +70,30 @@ class AssetManager {
 
   async _loadManifest() {
     const manifest = await loadJSON('../data/manifest.json');
-    const groups = Array.isArray(manifest.images) ? manifest.images : [];
-    const entries = await Promise.all(
-      groups.map(async (entry) => {
+    const entries = await this._normalizeEntries(manifest.images);
+    const resolved = await Promise.all(
+      entries.map(async (entry) => {
         const src = await resolveImage(entry);
         return { ...entry, src };
       })
     );
-    entries.forEach((entry) => {
+    resolved.forEach((entry) => {
       this.assets.set(entry.key, entry);
     });
     return this.assets;
+  }
+
+  async _normalizeEntries(images) {
+    if (!images) {
+      return [];
+    }
+    if (Array.isArray(images)) {
+      return images.map((entry) => ({ ...entry }));
+    }
+    if (typeof images === 'object') {
+      return Object.entries(images).map(([key, value]) => ({ key, ...value }));
+    }
+    return [];
   }
 
   get(key) {
