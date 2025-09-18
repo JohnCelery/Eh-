@@ -21,8 +21,6 @@ export default class SetupScreen {
   bind() {}
 
   async render() {
-    await assets.load();
-    const lock = assets.get('ui.brand.lockup');
     const section = document.createElement('section');
     section.className = 'screen setup-screen';
     section.setAttribute('aria-labelledby', 'setup-screen-heading');
@@ -33,14 +31,6 @@ export default class SetupScreen {
       <h2 id="setup-screen-heading">Dial in your rig and seed</h2>
       <p>Choose a vehicle, lock in a seed, and roll out with the family already buckled in.</p>
     `;
-    if (lock?.src) {
-      const brand = document.createElement('img');
-      brand.src = lock.src;
-      brand.alt = 'Canadian Trail logo';
-      brand.className = 'brand-lockup';
-      brand.loading = 'lazy';
-      header.prepend(brand);
-    }
     section.append(header);
 
     const form = document.createElement('form');
@@ -56,6 +46,8 @@ export default class SetupScreen {
       pickup: 'ui.vehicleCard.pickup',
       schoolbus: 'ui.vehicleCard.schoolBus'
     };
+
+    const vehicleMediaRefs = [];
 
     VEHICLES.forEach((vehicle, index) => {
       const id = `vehicle-${vehicle.id}`;
@@ -75,20 +67,16 @@ export default class SetupScreen {
 
       const media = document.createElement('div');
       media.className = 'vehicle-card-media';
-      const assetKey = vehicleImageKeys[vehicle.id];
-      const asset = assetKey ? assets.get(assetKey) : null;
-      if (asset?.src) {
-        const img = document.createElement('img');
-        img.src = asset.src;
-        img.alt = asset.label || `${vehicle.name} illustration`;
-        img.loading = 'lazy';
-        media.append(img);
-      } else {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'vehicle-card-placeholder';
-        placeholder.textContent = vehicle.name;
-        media.append(placeholder);
-      }
+      const placeholder = document.createElement('div');
+      placeholder.className = 'vehicle-card-placeholder';
+      placeholder.textContent = vehicle.name;
+      media.append(placeholder);
+
+      vehicleMediaRefs.push({
+        assetKey: vehicleImageKeys[vehicle.id],
+        media,
+        vehicle
+      });
 
       const content = document.createElement('div');
       content.className = 'vehicle-card-body';
@@ -201,6 +189,41 @@ export default class SetupScreen {
       this.screenManager.navigate('title');
     });
     section.append(backButton);
+
+    const hydrateAssets = () => {
+      const lock = assets.get('ui.brand.lockup');
+      if (lock?.src && !header.querySelector('.brand-lockup')) {
+        const brand = document.createElement('img');
+        brand.src = lock.src;
+        brand.alt = 'Canadian Trail logo';
+        brand.className = 'brand-lockup';
+        brand.loading = 'lazy';
+        header.prepend(brand);
+      }
+
+      vehicleMediaRefs.forEach(({ assetKey, media, vehicle }) => {
+        if (!assetKey || media.querySelector('img')) {
+          return;
+        }
+        const asset = assets.get(assetKey);
+        if (!asset?.src) {
+          return;
+        }
+
+        const img = document.createElement('img');
+        img.src = asset.src;
+        img.alt = asset.label || `${vehicle.name} illustration`;
+        img.loading = 'lazy';
+        media.replaceChildren(img);
+      });
+    };
+
+    assets
+      .load()
+      .then(hydrateAssets)
+      .catch((error) => {
+        console.error('Failed to load setup screen artwork', error);
+      });
 
     return section;
   }

@@ -29,12 +29,6 @@ export default class TitleScreen {
   }
 
   async render() {
-    await assets.load();
-
-    const isPortrait = window.innerHeight >= window.innerWidth;
-    const heroKey = isPortrait ? 'ui.hero.portrait' : 'ui.hero.landscape';
-    const hero = assets.get(heroKey);
-
     const section = document.createElement('section');
     section.className = 'screen title-screen';
     section.setAttribute('aria-labelledby', 'title-screen-heading');
@@ -42,19 +36,31 @@ export default class TitleScreen {
     const heroWrapper = document.createElement('div');
     heroWrapper.className = 'title-hero';
 
-    if (hero?.src) {
-      const img = document.createElement('img');
-      img.src = hero.src;
-      img.alt = HERO_ALT_TEXT;
-      img.loading = 'eager';
-      heroWrapper.append(img);
-    } else {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'title-hero-placeholder';
-      placeholder.setAttribute('role', 'img');
-      placeholder.setAttribute('aria-label', HERO_ALT_TEXT);
-      heroWrapper.append(placeholder);
-    }
+    const placeholder = document.createElement('div');
+    placeholder.className = 'title-hero-placeholder';
+    placeholder.setAttribute('role', 'img');
+    placeholder.setAttribute('aria-label', HERO_ALT_TEXT);
+    heroWrapper.append(placeholder);
+
+    assets
+      .load()
+      .then(() => {
+        const isPortrait = window.innerHeight >= window.innerWidth;
+        const heroKey = isPortrait ? 'ui.hero.portrait' : 'ui.hero.landscape';
+        const hero = assets.get(heroKey);
+        if (!hero?.src) {
+          return;
+        }
+
+        const img = document.createElement('img');
+        img.src = hero.src;
+        img.alt = HERO_ALT_TEXT;
+        img.loading = 'eager';
+        heroWrapper.replaceChildren(img);
+      })
+      .catch((error) => {
+        console.error('Failed to load title hero art', error);
+      });
 
     const cta = document.createElement('div');
     cta.className = 'title-cta';
