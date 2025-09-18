@@ -22,6 +22,7 @@ export default class SetupScreen {
 
   async render() {
     await assets.load();
+    const lock = assets.get('ui.brand.lockup');
     const section = document.createElement('section');
     section.className = 'screen setup-screen';
     section.setAttribute('aria-labelledby', 'setup-screen-heading');
@@ -32,6 +33,14 @@ export default class SetupScreen {
       <h2 id="setup-screen-heading">Dial in your rig and seed</h2>
       <p>Choose a vehicle, lock in a seed, and roll out with the family already buckled in.</p>
     `;
+    if (lock?.src) {
+      const brand = document.createElement('img');
+      brand.src = lock.src;
+      brand.alt = 'Canadian Trail logo';
+      brand.className = 'brand-lockup';
+      brand.loading = 'lazy';
+      header.prepend(brand);
+    }
     section.append(header);
 
     const form = document.createElement('form');
@@ -119,7 +128,7 @@ export default class SetupScreen {
     form.append(vehicleFieldset);
 
     const seedRow = document.createElement('div');
-    seedRow.className = 'form-row';
+    seedRow.className = 'form-row seed-row';
     const seedLabel = document.createElement('label');
     seedLabel.setAttribute('for', 'seed');
     seedLabel.textContent = 'Seed';
@@ -144,7 +153,11 @@ export default class SetupScreen {
       seedInput.focus({ preventScroll: true });
     });
 
-    seedRow.append(seedLabel, seedInput, seedHelp, randomizeButton);
+    const seedField = document.createElement('div');
+    seedField.className = 'seed-input-group';
+    seedField.append(seedLabel, seedInput, seedHelp);
+
+    seedRow.append(seedField, randomizeButton);
     form.append(seedRow);
 
     const partyFieldset = document.createElement('fieldset');
