@@ -176,44 +176,78 @@
     },
     "ui.hero.portrait": {
       "src": "assets/img/ui/title_hero_portrait.png",
+<<<<<<< ours
       "w": 1440,
       "h": 2560,
+=======
+      "w": 1024,
+      "h": 1536,
+>>>>>>> theirs
       "label": "Family van hero art (portrait)"
     },
     "ui.hero.landscape": {
       "src": "assets/img/ui/title_hero_landscape.png",
+<<<<<<< ours
       "w": 1920,
       "h": 1080,
+=======
+      "w": 1536,
+      "h": 1024,
+>>>>>>> theirs
       "label": "Family van hero art (landscape)"
     },
     "ui.brand.lockup": {
       "src": "assets/img/ui/brand_lockup.png",
       "w": 1024,
+<<<<<<< ours
       "h": 256,
+=======
+      "h": 1024,
+>>>>>>> theirs
       "label": "Canadian Trail logotype"
     },
     "ui.icon.start": {
       "src": "assets/img/ui/icon_start.png",
+<<<<<<< ours
       "w": 128,
       "h": 128,
+=======
+      "w": 1024,
+      "h": 1024,
+>>>>>>> theirs
       "label": "Start adventure icon"
     },
     "ui.icon.continue": {
       "src": "assets/img/ui/icon_continue.png",
+<<<<<<< ours
       "w": 128,
       "h": 128,
+=======
+      "w": 1024,
+      "h": 1024,
+>>>>>>> theirs
       "label": "Continue adventure icon"
     },
     "ui.setup.banner": {
       "src": "assets/img/ui/setup_banner.png",
+<<<<<<< ours
       "w": 2048,
       "h": 512,
+=======
+      "w": 1536,
+      "h": 1024,
+>>>>>>> theirs
       "label": "Setup screen banner"
     },
     "ui.badge.deterministic": {
       "src": "assets/img/ui/badge_deterministic.png",
+<<<<<<< ours
       "w": 96,
       "h": 96,
+=======
+      "w": 1024,
+      "h": 1024,
+>>>>>>> theirs
       "label": "Deterministic RNG badge"
     }
   }
